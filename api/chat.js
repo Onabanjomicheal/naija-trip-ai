@@ -1,12 +1,15 @@
 // ══════════════════════════════════════════════════════════════════
-// NaijaTrip AI — api/chat.js  (Vercel serverless)
-// v9 — clean architecture: LLM owns knowledge, live data owns facts
-//       rate limiting, confidence gate, proper role injection
+// NaijaTrip AI — api/chat.js  v10
+// Fully dynamic — any city, any town, any state across Nigeria.
+// No hardcoded geography. No hardcoded routes. No confidence lists.
+// Route classification: coordinate-based state detection.
+// Journey time: TomTom Routing live traffic → OSRM fallback.
+// Fare confidence: LLM self-judges. FARE_VERIFIED or NO_LIVE_FARE only.
+// Weather: OpenWeatherMap (visibility + rain intensity) + open-meteo fallback.
+// Motor parks: LocationIQ nearby search.
 // ══════════════════════════════════════════════════════════════════
 
 // ── RATE LIMITER ─────────────────────────────────────────────────
-// 10 requests per IP per 60s. Resets on cold start (acceptable for
-// prototype). Production: swap _rl for Upstash Redis.
 const _rl = {};
 function checkRateLimit(ip) {
   const now = Date.now(), WINDOW = 60_000, MAX = 10;
@@ -29,8 +32,9 @@ async function timedFetch(url, opts = {}, ms = 6000) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// CITY + AREA DATA — used for weather/traffic lookups only
-// NOT injected into the AI prompt as knowledge
+// CITY REFERENCE DATA
+// Used ONLY for: geocode fallback, state lookup, weather batch fetch.
+// Never injected into AI prompt as knowledge.
 // ══════════════════════════════════════════════════════════════════
 const ALL_CITIES = [
   { name:"Lagos",         state:"Lagos",         lat:6.5244,  lon:3.3792  },
@@ -75,36 +79,32 @@ const ALL_CITIES = [
   { name:"Yenagoa",       state:"Bayelsa",       lat:4.9247,  lon:6.2642  },
 ];
 
-const LAGOS_AREAS = [
-  "ikeja","lekki","ajah","vi","victoria island","ikoyi","surulere","yaba","maryland",
-  "ojota","mile 2","festac","ikorodu","mushin","oshodi","agege","berger","alimosho",
-  "isale eko","apapa","tin can","badagry","epe","ibeju","sangotedo","chevron",
-  "jakande","eti-osa","allen avenue","airport road","oregun","ogba","palmgroove",
-  "gbagada","ogudu","shangisha","magodo","ketu","mile 12","owode","ojodu",
-  "anthony","onipanu","fadeyi","palm avenue","mainland","island","maza-maza",
-  "ojuelegba","iyana-ipaja","sango","dopemu","pen cinema","orile",
-];
+// ── HAVERSINE DISTANCE ────────────────────────────────────────────
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
 
+// Find nearest city in ALL_CITIES to given coordinates
+function nearestCity(lat, lon) {
+  let best = null, bestDist = Infinity;
+  for (const c of ALL_CITIES) {
+    const d = haversineKm(lat, lon, c.lat, c.lon);
+    if (d < bestDist) { bestDist = d; best = c; }
+  }
+  return best;
+}
+
+// ── DETECT CITIES FROM MESSAGE ───────────────────────────────────
 function detectCities(msg) {
   const lm = msg.toLowerCase();
-  const cities = ALL_CITIES.filter(c =>
+  return ALL_CITIES.filter(c =>
     lm.includes(c.name.toLowerCase()) || lm.includes(c.state.toLowerCase())
   );
-  const hasLagosArea = LAGOS_AREAS.some(a => lm.includes(a));
-  if (hasLagosArea && !cities.find(c => c.name === "Lagos")) {
-    cities.unshift(ALL_CITIES.find(c => c.name === "Lagos"));
-  }
-  return cities.filter(Boolean);
 }
 
-function isLagosIntraCity(msg) {
-  const lm = msg.toLowerCase();
-  const isLagos = lm.includes("lagos") || LAGOS_AREAS.some(a => lm.includes(a));
-  if (!isLagos) return false;
-  const count = LAGOS_AREAS.filter(a => lm.includes(a)).length;
-  return count >= 2;
-}
-
+// ── PRIMARY CITY FOR HEADER ──────────────────────────────────────
 function pickPrimaryCity(mentioned, weatherData, route) {
   if (!weatherData?.length) return null;
   if (route) {
@@ -118,7 +118,7 @@ function pickPrimaryCity(mentioned, weatherData, route) {
     const w = weatherData.find(w => w.name === c.name);
     if (w) return w;
   }
-  return weatherData.find(w => w.name === "Lagos") || weatherData[0];
+  return weatherData[0];
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -128,12 +128,14 @@ async function fetchExchangeRates() {
   try {
     const r = await timedFetch("https://open.er-api.com/v6/latest/USD");
     const d = await r.json();
-    if (d.rates?.NGN) return {
+    if (d.rates?.NGN) {
+      console.log(`[RATES OK] 1 USD = ${d.rates.NGN} NGN`);
+      return {
       NGN: d.rates.NGN.toFixed(2),
       GBP: d.rates.GBP.toFixed(4),
       EUR: d.rates.EUR.toFixed(4),
-    };
-  } catch {}
+    };}
+  } catch(e) { console.log(`[RATES FAIL] open.er-api:`, e.message); }
   try {
     const r = await timedFetch("https://api.frankfurter.app/latest?from=USD&to=NGN,GBP,EUR");
     const d = await r.json();
@@ -179,13 +181,44 @@ async function fetchTravelAdvisory() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// 3. WEATHER
+// 3. WEATHER — OpenWeatherMap PRIMARY, open-meteo FALLBACK
+// OpenWeatherMap adds visibility + rain intensity per point.
+// Called per-coordinates for route endpoints (origin + destination).
+// Batch call for all state capitals as background weather context.
 // ══════════════════════════════════════════════════════════════════
 const WMO = c =>
   c>=80?"Heavy rain 🌧":c>=61?"Raining 🌦":c>=51?"Drizzle 🌦":
   c>=45?"Foggy 🌫":c>=3?"Cloudy ⛅":c>=1?"Partly cloudy 🌤":"Clear ☀️";
 
-async function fetchWeather() {
+// OpenWeatherMap for a single point — returns visibility + rain intensity
+async function fetchOWM(lat, lon, label) {
+  const key = process.env.OPENWEATHER_API_KEY;
+  if (!key) return null;
+  try {
+    const r = await timedFetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${key}&units=metric`,
+      {}, 5000
+    );
+    const d = await r.json();
+    if (!d?.main) return null;
+    const temp       = Math.round(d.main.temp);
+    const desc       = d.weather?.[0]?.description || "unknown";
+    const visM       = d.visibility || null;   // metres
+    const rain1h     = d.rain?.["1h"] || 0;    // mm/hr
+    const windKmh    = d.wind?.speed ? Math.round(d.wind.speed * 3.6) : null;
+    const harmattan  = visM !== null && visM < 2000;
+    const heavyRain  = rain1h >= 10;
+    const floodRisk  = rain1h >= 20;
+    let   hazard     = "";
+    if (floodRisk)     hazard = " ⚠️ Heavy rain — flooding possible on roads";
+    else if (heavyRain) hazard = " ⚠️ Rain — roads may be slippery";
+    else if (harmattan) hazard = ` ⚠️ Harmattan haze — visibility ${visM}m, use headlights`;
+    return { name: label, temp, desc, visM, rain1h, windKmh, hazard, rain: rain1h > 0 || desc.includes("rain") };
+  } catch { return null; }
+}
+
+// Batch fetch for all state capitals (open-meteo, no key needed)
+async function fetchWeatherBatch() {
   try {
     const lats = ALL_CITIES.map(c => c.lat).join(",");
     const lons = ALL_CITIES.map(c => c.lon).join(",");
@@ -198,7 +231,7 @@ async function fetchWeather() {
     const out = arr.map((item, i) => {
       if (!item?.current_weather) return null;
       const { temperature: t, weathercode: c } = item.current_weather;
-      return { name: ALL_CITIES[i].name, state: ALL_CITIES[i].state, temp: t, code: c, desc: WMO(c), rain: c >= 61 };
+      return { name: ALL_CITIES[i].name, state: ALL_CITIES[i].state, temp: t, code: c, desc: WMO(c), rain: c >= 61, hazard: "" };
     }).filter(Boolean);
     if (out.length >= 10) return out;
   } catch {}
@@ -206,86 +239,33 @@ async function fetchWeather() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// 4. TRAFFIC — TomTom Flow (fully dynamic, any location in Nigeria)
-//
-// No hardcoded road segments. We geocode each city/area mentioned,
-// then query TomTom Flow at those exact coordinates.
-// Works for Jalingo, Yola, Damaturu, Ado Ekiti — everywhere.
+// 4. GEOCODING — LocationIQ PRIMARY, TomTom SECOND, Nominatim FALLBACK
+// LocationIQ: fast, Nigeria-accurate, generous free tier (5000/day)
 // ══════════════════════════════════════════════════════════════════
-
-// Query TomTom Flow API at a specific lat/lon point
-async function flowAtPoint(lat, lon, label, key) {
+async function geocodeLocationIQ(name) {
+  const key = process.env.LOCATIONIQ_API_KEY;
+  if (!key) return null;
   try {
-    const r = await timedFetch(
-      `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point=${lat},${lon}&key=${key}`,
-      {}, 4000
+    const enc = encodeURIComponent(name + " Nigeria");
+    const r   = await timedFetch(
+      `https://us1.locationiq.com/v1/search?key=${key}&q=${enc}&format=json&limit=1&countrycodes=ng`,
+      { headers: { "User-Agent": "NaijaTripAI/1.0" } }, 4000
     );
     const d = await r.json();
-    if (!d.flowSegmentData) return null;
-    const { currentSpeed: cs, freeFlowSpeed: ff, currentTravelTime: ct, freeFlowTravelTime: ft } = d.flowSegmentData;
-    if (!ff || ff === 0) return null;
-    const pct   = Math.round((1 - cs / ff) * 100);
-    const level = pct >= 70 ? "🔴 Heavy" : pct >= 40 ? "🟡 Moderate" : "🟢 Clear";
-    const extra = Math.round((ct - ft) / 60);
-    return {
-      text:  `${label}: ${level} — ${cs}km/h${extra > 0 ? ` (+${extra}min delay)` : ""}`,
-      label, lat, lon, speed: cs, pct, level,
-    };
-  } catch { return null; }
+    if (d?.[0]) return { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon) };
+  } catch {}
+  return null;
 }
 
-// For a route: sample flow at 3 points — origin, midpoint, destination
-// For a city query: sample at city centre only
-async function fetchTrafficDynamic(cityNames, route, key) {
-  if (!key || !cityNames.length) return null;
-
-  // Deduplicate — geocode each unique city name
-  const unique = [...new Set(cityNames.map(n => n.trim()).filter(Boolean))];
-  const geoResults = await Promise.allSettled(unique.map(name => geocode(name)));
-
-  const points = []; // { lat, lon, label }
-
-  unique.forEach((name, i) => {
-    const pos = geoResults[i].status === "fulfilled" ? geoResults[i].value : null;
-    if (!pos) return;
-    points.push({ lat: pos.lat, lon: pos.lon, label: name });
-  });
-
-  // For a route, add the geographic midpoint between origin and destination
-  // so we capture congestion along the corridor, not just at endpoints
-  if (route && points.length >= 2) {
-    const o = points.find(p => p.label.toLowerCase() === route.origin.toLowerCase())
-           || points[0];
-    const d = points.find(p => p.label.toLowerCase() === route.destination.toLowerCase())
-           || points[points.length - 1];
-    if (o && d) {
-      points.push({
-        lat:   (o.lat + d.lat) / 2,
-        lon:   (o.lon + d.lon) / 2,
-        label: `${route.origin}–${route.destination} corridor`,
-      });
-    }
-  }
-
-  if (!points.length) return null;
-
-  const results = await Promise.allSettled(
-    points.map(p => flowAtPoint(p.lat, p.lon, p.label, key))
-  );
-
-  const valid = results.map(r => r.value).filter(Boolean);
-  return valid.length > 0 ? valid : null;
-}
-
-// ══════════════════════════════════════════════════════════════════
-// 5. ROAD DISTANCE — OSRM → TomTom fallback
-// ══════════════════════════════════════════════════════════════════
 async function geocodeTomTom(name) {
   const key = process.env.TOMTOM_API_KEY;
   if (!key) return null;
   try {
     const enc = encodeURIComponent(name + ", Nigeria");
-    const r   = await timedFetch(`https://api.tomtom.com/search/2/geocode/${enc}.json?key=${key}&countrySet=NG&limit=1`, {}, 4000);
+    const r   = await timedFetch(
+      `https://api.tomtom.com/search/2/geocode/${enc}.json?key=${key}&countrySet=NG&limit=1`,
+      {}, 4000
+    );
     const d   = await r.json();
     const pos = d?.results?.[0]?.position;
     return pos ? { lat: pos.lat, lon: pos.lon } : null;
@@ -306,76 +286,160 @@ async function geocodeNominatim(name) {
 }
 
 async function geocode(name) {
-  return (await geocodeTomTom(name)) || (await geocodeNominatim(name));
+  const liq = await geocodeLocationIQ(name);
+  if (liq) { console.log(`[GEO OK] LocationIQ: "${name}" → ${liq.lat},${liq.lon}`); return liq; }
+  const tt  = await geocodeTomTom(name);
+  if (tt)  { console.log(`[GEO OK] TomTom: "${name}" → ${tt.lat},${tt.lon}`); return tt; }
+  const nom = await geocodeNominatim(name);
+  if (nom) { console.log(`[GEO OK] Nominatim: "${name}" → ${nom.lat},${nom.lon}`); return nom; }
+  console.log(`[GEO FAIL] All geocoders failed for: "${name}"`);
+  return null;
 }
 
-// ── FORMAT MINUTES ────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// 5. ROUTE CLASSIFICATION — coordinate-based, no hardcoded lists
+// Geocodes both origin and destination, finds nearest state capital,
+// compares states. Distance-based sub-classification.
+// intra-city  = same state, < 30km
+// intra-state = same state, 30–150km
+// interstate  = different states
+// ══════════════════════════════════════════════════════════════════
+async function classifyRouteByCoords(originCoords, destCoords, distKm) {
+  if (!originCoords || !destCoords) {
+    // Fallback: pure distance heuristic
+    if (distKm && distKm < 30)  return "intra-city";
+    if (distKm && distKm < 150) return "intra-state";
+    return "interstate";
+  }
+  const oCity = nearestCity(originCoords.lat, originCoords.lon);
+  const dCity = nearestCity(destCoords.lat,   destCoords.lon);
+
+  if (!oCity || !dCity) return distKm < 30 ? "intra-city" : distKm < 150 ? "intra-state" : "interstate";
+
+  if (oCity.state === dCity.state) {
+    if (distKm < 30)  return "intra-city";
+    return "intra-state";
+  }
+  return "interstate";
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 6. TRAFFIC — TomTom Flow, fully dynamic
+// Samples 5 points along corridor: origin, 25%, midpoint, 75%, dest
+// ══════════════════════════════════════════════════════════════════
+async function flowAtPoint(lat, lon, label, key) {
+  try {
+    const r = await timedFetch(
+      `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point=${lat},${lon}&key=${key}`,
+      {}, 4000
+    );
+    const d = await r.json();
+    if (!d.flowSegmentData) return null;
+    const { currentSpeed: cs, freeFlowSpeed: ff, currentTravelTime: ct, freeFlowTravelTime: ft } = d.flowSegmentData;
+    if (!ff || ff === 0) return null;
+    const pct   = Math.round((1 - cs / ff) * 100);
+    const level = pct >= 70 ? "🔴 Heavy" : pct >= 40 ? "🟡 Moderate" : "🟢 Clear";
+    const extra = Math.max(0, Math.round((ct - ft) / 60));
+    return {
+      text:  `${label}: ${level} — ${cs}km/h${extra > 0 ? ` (+${extra}min delay)` : ""}`,
+      label, lat, lon, speed: cs, pct, level, extraMins: extra,
+    };
+  } catch { return null; }
+}
+
+async function fetchTrafficDynamic(cityNames, route, key) {
+  if (!key || !cityNames.length) return null;
+  const unique = [...new Set(cityNames.map(n => n.trim()).filter(Boolean))];
+  const geoResults = await Promise.allSettled(unique.map(name => geocode(name)));
+
+  const points = [];
+  unique.forEach((name, i) => {
+    const pos = geoResults[i].status === "fulfilled" ? geoResults[i].value : null;
+    if (!pos) return;
+    points.push({ lat: pos.lat, lon: pos.lon, label: name });
+  });
+
+  // For a route: add 25%, 50%, 75% interpolation points along corridor
+  if (route && points.length >= 2) {
+    const o = points.find(p => p.label.toLowerCase().includes(route.origin.toLowerCase())) || points[0];
+    const d = points.find(p => p.label.toLowerCase().includes(route.destination.toLowerCase())) || points[points.length - 1];
+    if (o && d) {
+      [0.25, 0.5, 0.75].forEach(t => {
+        points.push({
+          lat:   o.lat + (d.lat - o.lat) * t,
+          lon:   o.lon + (d.lon - o.lon) * t,
+          label: `${route.origin}–${route.destination} corridor (${Math.round(t*100)}%)`,
+        });
+      });
+    }
+  }
+
+  if (!points.length) return null;
+  if (!points.length) return null;
+  const results = await Promise.allSettled(points.map(p => flowAtPoint(p.lat, p.lon, p.label, key)));
+  const valid = results.map(r => r.value).filter(Boolean);
+  if (valid.length > 0) {
+    console.log(`[TRAFFIC OK] ${valid.length} points:`, valid.map(v => v.text).join(" | "));
+  } else {
+    console.log(`[TRAFFIC FAIL] No flow data for: ${cityNames.join(", ")}`);
+  }
+  return valid.length > 0 ? valid : null;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 7. ROAD DISTANCE + LIVE TRAVEL TIME
+// TomTom Routing with traffic=true PRIMARY (any two points, live time)
+// Cross-check removed — TomTom live routing is sufficient
+// OSRM FALLBACK (free-flow only)
+// ══════════════════════════════════════════════════════════════════
 function fmtMins(mins) {
   const h = Math.floor(mins / 60), m = mins % 60;
   return h > 0 ? `${h}hr${m > 0 ? ` ${m}min` : ""}` : `${m}min`;
 }
 
-// ── ROAD DISTANCE + LIVE TRAVEL TIME ─────────────────────────────
-// TomTom Routing with traffic=true is PRIMARY — works for any city pair
-// in Nigeria, returns live travel time + traffic delay.
-// OSRM is fallback — free-flow only, no traffic data.
-async function fetchRoadDistance(origin, destination) {
+// fetchGoogleDistanceMatrix not used — replaced by LocationIQ + TomTom stack
+// Journey time: TomTom Routing with traffic=true (PRIMARY) → OSRM fallback.
+// LocationIQ handles all geocoding. No Google Maps API key required.
+
+// ══════════════════════════════════════════════════════════════════
+// 8. MOTOR PARKS — LocationIQ Nearby Search
+// Finds terminals and motor parks near origin city coordinates.
+// ══════════════════════════════════════════════════════════════════
+async function fetchMotorParks(cityName, routeType) {
+  const key = process.env.LOCATIONIQ_API_KEY;
+  if (!key || routeType === "intra-city") return null;
   try {
-    const [from, to] = await Promise.all([geocode(origin), geocode(destination)]);
-    if (!from || !to) return null;
+    // First geocode the city to get coordinates
+    const coords = await geocodeLocationIQ(cityName);
+    if (!coords) return null;
 
-    // PRIMARY: TomTom routing with live traffic — any two points in Nigeria
-    const key = process.env.TOMTOM_API_KEY;
-    if (key) {
-      try {
-        const r = await timedFetch(
-          `https://api.tomtom.com/routing/1/calculateRoute/${from.lat},${from.lon}:${to.lat},${to.lon}/json?key=${key}&travelMode=car&traffic=true`,
-          {}, 6000
-        );
-        const d = await r.json();
-        const s = d?.routes?.[0]?.summary;
-        if (s) {
-          const km       = (s.lengthInMeters / 1000).toFixed(1);
-          const mins     = Math.round(s.travelTimeInSeconds / 60);
-          const freeFlow = Math.round(s.noTrafficTravelTimeInSeconds / 60);
-          const delay    = Math.max(0, Math.round(s.trafficDelayInSeconds / 60));
-          return {
-            summary:     `${km}km | ~${fmtMins(mins)} with current traffic`,
-            source:      "TomTom",
-            km:          parseFloat(km),
-            travelMins:  mins,
-            freeFlowMins: freeFlow,
-            delayMins:   delay,
-          };
-        }
-      } catch {}
+    // Search for bus terminals and motor parks nearby
+    const searches = [
+      `https://us1.locationiq.com/v1/nearby?key=${key}&lat=${coords.lat}&lon=${coords.lon}&tag=amenity:bus_station&radius=10000&format=json&limit=3`,
+      `https://us1.locationiq.com/v1/nearby?key=${key}&lat=${coords.lat}&lon=${coords.lon}&tag=amenity:bus_stop&radius=5000&format=json&limit=3`,
+    ];
+
+    const results = await Promise.allSettled(searches.map(url =>
+      timedFetch(url, { headers: { "User-Agent": "NaijaTripAI/1.0" } }, 5000).then(r => r.json())
+    ));
+
+    const parks = [];
+    for (const res of results) {
+      if (res.status !== "fulfilled" || !Array.isArray(res.value)) continue;
+      for (const p of res.value) {
+        const name = p.name || p.display_name?.split(",")[0];
+        const addr = p.display_name?.split(",").slice(0, 3).join(", ");
+        if (name && addr) parks.push(`${name} — ${addr}`);
+      }
     }
 
-    // FALLBACK: OSRM — free-flow routing, no traffic, works globally
-    const r = await timedFetch(
-      `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false`,
-      {}, 5000
-    );
-    const d = await r.json();
-    const route = d?.routes?.[0];
-    if (route) {
-      const km   = (route.distance / 1000).toFixed(1);
-      const mins = Math.round(route.duration / 60);
-      return {
-        summary:     `${km}km | ~${fmtMins(mins)} drive (free-flow estimate)`,
-        source:      "OSRM",
-        km:          parseFloat(km),
-        travelMins:  mins,
-        freeFlowMins: mins,
-        delayMins:   0,
-      };
-    }
-  } catch {}
-  return null;
+    const seen = new Set();
+    return parks.filter(p => { if (seen.has(p)) return false; seen.add(p); return true; }).slice(0, 3);
+  } catch { return null; }
 }
 
 // ══════════════════════════════════════════════════════════════════
-// 6. SERPER
+// 9. SERPER
 // ══════════════════════════════════════════════════════════════════
 async function serperSearch(query, num = 6) {
   const key = process.env.SERPER_API_KEY;
@@ -393,51 +457,37 @@ async function serperSearch(query, num = 6) {
 
 function extractNaira(snippets) {
   const all = snippets.join(" ");
+  // Require ₦ symbol or explicit "naira"/"NGN" — avoids grabbing salary/unrelated numbers
   const matches = all.match(
-    /₦[\d,]+(?:\s*[-–]\s*₦?[\d,]+)?|\bN\s?[\d,]{3,}(?:\s*[-–]\s*N?\s?[\d,]+)?|\d{1,3}(?:,\d{3})+\s*(?:naira|NGN)/gi
+    /₦[\d,]+(?:\s*[-–]\s*₦?[\d,]+)?|\d{1,3}(?:,\d{3})+\s*(?:naira|NGN)/gi
   );
   if (!matches?.length) return null;
+  // Prefer ranges over single figures
   const ranges = matches.filter(m => /[-–]/.test(m));
-  return (ranges[0] || matches[0]).replace(/\s+/g, " ").trim();
+  // Sanity check: ignore suspiciously large numbers (> ₦500,000 for transport)
+  const pick = (ranges[0] || matches[0]).replace(/\s+/g, " ").trim();
+  const digits = parseInt(pick.replace(/[^\d]/g, ""), 10);
+  if (digits > 500000) return null;
+  return pick;
 }
 
 // ══════════════════════════════════════════════════════════════════
-// 7. LIVE FARE — confidence gate
-// fareStatus: "VERIFIED" | "ESTIMATE" | "UNKNOWN"
-// VERIFIED  = Serper returned a naira figure  → AI uses it
-// ESTIMATE  = Known major route, no live data → AI uses its knowledge, labels as estimate
-// UNKNOWN   = Obscure route, no data          → AI does NOT guess, tells user to confirm
+// 10. LIVE FARE DATA
+// Operator sites first, Nairaland fallback.
+// No KNOWN_ROUTES list. No getFareStatus().
+// Returns FARE_VERIFIED (with amount) or NO_LIVE_FARE (LLM decides).
 // ══════════════════════════════════════════════════════════════════
-const KNOWN_ROUTES = new Set([
-  "lagos-abuja","lagos-ibadan","lagos-port harcourt","lagos-kano","lagos-enugu",
-  "lagos-benin city","lagos-warri","lagos-calabar","lagos-owerri","lagos-onitsha",
-  "lagos-kaduna","lagos-ilorin","lagos-abeokuta","lagos-sagamu","lagos-osogbo",
-  "abuja-kaduna","abuja-kano","abuja-jos","abuja-lokoja","abuja-enugu","abuja-minna",
-  "abuja-ibadan","abuja-port harcourt","abuja-makurdi","abuja-ilorin","abuja-owerri",
-  "kano-kaduna","kano-katsina","kano-maiduguri","kano-jos","kano-bauchi",
-  "ibadan-abuja","ibadan-benin city","ibadan-ilorin","ibadan-abeokuta","ibadan-osogbo",
-  "enugu-onitsha","enugu-aba","enugu-owerri","enugu-port harcourt","enugu-umuahia",
-  "port harcourt-calabar","port harcourt-warri","port harcourt-aba","port harcourt-owerri",
-  "sagamu-ibadan","sagamu-benin city","onitsha-aba","benin city-warri","warri-asaba",
-  "kaduna-jos","kaduna-minna","asaba-onitsha","aba-umuahia","calabar-owerri",
-]);
-
-function getFareStatus(origin, destination, fareRange) {
-  if (fareRange) return "VERIFIED";
-  const o = origin.toLowerCase(), d = destination.toLowerCase();
-  if (KNOWN_ROUTES.has(`${o}-${d}`) || KNOWN_ROUTES.has(`${d}-${o}`)) return "ESTIMATE";
-  return "UNKNOWN";
-}
-
 async function fetchLiveFareData(origin, destination, routeType) {
   const yr = new Date().getFullYear();
   const o  = origin.trim(), d = destination.trim();
-  const q1 = `${o}-${d} bus fare naira ${yr} site:nairaland.com`;
-  const q2 = `${o} ${d} transport fare naira ${yr} site:nairaland.com`;
+
+  // Operator sites first — actual booking prices, not forum posts
+  const q1 = `${o} to ${d} fare ${yr} site:gigm.com.ng OR site:abc-transport.com OR site:god-is-good-motors.com`;
+  const q2 = `${o} ${d} bus ticket price ${yr} naira Nigeria transport`;
   const q3 = routeType === "interstate"
-    ? `${o} to ${d} motor park fare ${yr} naira Nigeria`
-    : `${o} ${d} bolt fare naira ${yr}`;
-  const q4 = `${o} to ${d} fare cost ${yr} naira Nigeria`;
+    ? `${o} to ${d} motor park bus fare ${yr} naira Nigeria`
+    : `${o} ${d} shared taxi keke fare ${yr} naira`;
+  const q4 = `${o} to ${d} transport cost ${yr} naira`;
   const qF = `Nigeria petrol pump price NNPC ${yr} naira per litre`;
 
   const [r1, r2, r3, r4, rF] = await Promise.allSettled([
@@ -450,7 +500,9 @@ async function fetchLiveFareData(origin, destination, routeType) {
   const fareRange = extractNaira(allSnips(r1)) || extractNaira(allSnips(r2))
                  || extractNaira(allSnips(r3)) || extractNaira(allSnips(r4));
   const fuelPrice = extractNaira(allSnips(rF));
-  const fareStatus = getFareStatus(origin, destination, fareRange);
+
+  // Simple binary signal — LLM decides confidence for NO_LIVE_FARE
+  const fareStatus = fareRange ? "FARE_VERIFIED" : "NO_LIVE_FARE";
 
   const allResults = [...(r1.value||[]),...(r2.value||[]),...(r3.value||[]),...(r4.value||[])];
   const seen = new Set();
@@ -463,11 +515,12 @@ async function fetchLiveFareData(origin, destination, routeType) {
     return `[${src}] ${r.snippet}`.slice(0, 200);
   });
 
+  console.log(`[FARE] status=${fareStatus} range=${fareRange||"none"} fuel=${fuelPrice||"none"} snippets=${topSnippets.length}`);
   return { fareRange: fareRange||null, fareStatus, fuelPrice: fuelPrice||null, topSnippets: topSnippets.length ? topSnippets : null };
 }
 
 // ══════════════════════════════════════════════════════════════════
-// 8. INTENT WEB SEARCH
+// 11. INTENT WEB SEARCH
 // ══════════════════════════════════════════════════════════════════
 async function fetchWebSearch(userMsg, mentionedCities) {
   if (!process.env.SERPER_API_KEY) return null;
@@ -518,40 +571,40 @@ async function fetchWebSearch(userMsg, mentionedCities) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// ROUTE DETECTION + CLASSIFICATION
+// ROUTE DETECTION
 // ══════════════════════════════════════════════════════════════════
 function detectRoute(msg) {
   const m = msg.trim();
   let x;
-  x = m.match(/from\s+([\w\s]{2,30}?)\s+to\s+([\w\s]{2,30}?)(?:\s*[?.,!]|$)/i);
+  // "from X to Y"
+  x = m.match(/from\s+([\w\s]{2,35}?)\s+to\s+([\w\s]{2,35}?)(?:\s*[?.,!]|$)/i);
   if (x) return { origin: x[1].trim(), destination: x[2].trim() };
-  x = m.match(/to\s+([\w\s]{2,30}?)\s+from\s+([\w\s]{2,30}?)(?:\s*[?.,!]|$)/i);
+  // "to Y from X"
+  x = m.match(/to\s+([\w\s]{2,35}?)\s+from\s+([\w\s]{2,35}?)(?:\s*[?.,!]|$)/i);
   if (x) return { origin: x[2].trim(), destination: x[1].trim() };
-  x = m.match(/(?:going|traveling|heading|travelling|dey go)\s+to\s+([\w\s]{2,30}?)\s+from\s+([\w\s]{2,30}?)(?:\s*[?.,!]|$)/i);
+  // "going/traveling/heading to Y from X"
+  x = m.match(/(?:going|traveling|heading|travelling|dey go)\s+to\s+([\w\s]{2,35}?)\s+from\s+([\w\s]{2,35}?)(?:\s*[?.,!]|$)/i);
   if (x) return { origin: x[2].trim(), destination: x[1].trim() };
-  x = m.match(/([\w\s]{2,25}?)\s+to\s+([\w\s]{2,25}?)\s+(?:fare|price|cost|transport|how much|bus|ticket)/i);
+  // "X to Y fare/transport..."
+  x = m.match(/([\w\s]{2,30}?)\s+to\s+([\w\s]{2,30}?)\s+(?:fare|price|cost|transport|how much|bus|ticket)/i);
+  if (x) return { origin: x[1].trim(), destination: x[2].trim() };
+  // "I'm in X and need to get to Y" / "I am in X going to Y"
+  x = m.match(/(?:i(?:'?m| am)\s+in|based in|currently in|dey)\s+([\w\s]{2,30}?)(?:\s+and)?\s+(?:need to get to|going to|want to go to|heading to|travelling? to|dey go)\s+([\w\s]{2,30}?)(?:\s*[?.,!]|,|$)/i);
+  if (x) return { origin: x[1].trim(), destination: x[2].trim() };
+  // "get/go/travel to Y from X"
+  x = m.match(/(?:get|go|travel|move)\s+to\s+([\w\s]{2,30}?)\s+from\s+([\w\s]{2,30}?)(?:\s*[?.,!]|$)/i);
+  if (x) return { origin: x[2].trim(), destination: x[1].trim() };
+  // "trip/journey from X to Y"
+  x = m.match(/(?:trip|journey|travel|route)\s+(?:from\s+)?([\w\s]{2,30}?)\s+to\s+([\w\s]{2,30}?)(?:\s*[?.,!]|$)/i);
+  if (x) return { origin: x[1].trim(), destination: x[2].trim() };
+  // "X to Y" at start of sentence
+  x = m.match(/^([\w\s]{2,25}?)\s+to\s+([\w\s]{2,25}?)(?:\s*[?.,!]|$)/i);
   if (x) return { origin: x[1].trim(), destination: x[2].trim() };
   return null;
 }
 
-function classifyRoute(origin, destination) {
-  const names = ALL_CITIES.map(c => c.name.toLowerCase());
-  const o = origin.toLowerCase(), d = destination.toLowerCase();
-  const oIsLagosArea = LAGOS_AREAS.some(a => o.includes(a));
-  const dIsLagosArea = LAGOS_AREAS.some(a => d.includes(a));
-  if (oIsLagosArea && dIsLagosArea) return "city";
-  const sameCity = ALL_CITIES.find(c => {
-    const n = c.name.toLowerCase();
-    return (o.includes(n) || n.includes(o)) && (d.includes(n) || n.includes(d));
-  });
-  if (sameCity) return "city";
-  if (names.some(n => o.includes(n) || n.includes(o)) || names.some(n => d.includes(n) || n.includes(d))) return "interstate";
-  return "city";
-}
-
 function isPeakHour() {
-  const WAT_OFFSET_MS = 60 * 60 * 1000;
-  const h = new Date(Date.now() + WAT_OFFSET_MS).getUTCHours();
+  const h = new Date(Date.now() + 3600000).getUTCHours();
   return (h >= 7 && h <= 9) || (h >= 16 && h <= 20);
 }
 
@@ -569,82 +622,159 @@ async function withCache(key, fn, ttlMs) {
 
 // ══════════════════════════════════════════════════════════════════
 // BUILD LIVE CONTEXT
-// Injected as a second SYSTEM message — not appended to user content.
-// Contains ONLY real-time facts. LLM owns all transport/cultural knowledge.
 // ══════════════════════════════════════════════════════════════════
 async function buildContext(userMsg) {
-  // Nigeria is always UTC+1 (WAT, no DST)
-  const WAT_OFFSET_MS = 60 * 60 * 1000;
+  const WAT_OFFSET_MS = 3600000;
   const _ld  = new Date(Date.now() + WAT_OFFSET_MS);
   const _p   = n => String(n).padStart(2,"0");
   const _h   = _ld.getUTCHours(), _ampm = _h >= 12 ? "PM" : "AM";
   const now  = `${_h % 12 || 12}:${_p(_ld.getUTCMinutes())} ${_ampm}`;
+  // Harmattan season: November–March
+  const month       = _ld.getUTCMonth() + 1; // 1-12
+  const isHarmattan = month >= 11 || month <= 3;
 
   const mentionedCities = detectCities(userMsg);
   const mentionedNames  = mentionedCities.map(c => c.name);
   const route           = detectRoute(userMsg);
-  const lagosIntraCity  = isLagosIntraCity(userMsg);
 
-  // Traffic: fetch for all route cities + mentioned cities, deduplicated
-  const routeCities = route ? [route.origin, route.destination] : [];
-  const trafficCityNames = [...new Set([...routeCities, ...mentionedNames])];
+  const trafficCityNames = route
+    ? [...new Set([route.origin, route.destination, ...mentionedNames])]
+    : mentionedNames;
 
   const tomtomKey = process.env.TOMTOM_API_KEY;
 
-  const [rates, advisory, weatherAll, traffic] = await Promise.all([
-    withCache("rates",    fetchExchangeRates,  24 * 60 * 60 * 1000),
-    withCache("advisory", fetchTravelAdvisory, 24 * 60 * 60 * 1000),
-    withCache("weather",  fetchWeather,         1 * 60 * 60 * 1000),
+  // Parallel fetch: rates, advisory, weather batch, traffic
+  const [rates, advisory, weatherBatch, traffic] = await Promise.all([
+    withCache("rates",    fetchExchangeRates,  24 * 3600000),
+    withCache("advisory", fetchTravelAdvisory, 24 * 3600000),
+    withCache("weather",  fetchWeatherBatch,    1 * 3600000),
     trafficCityNames.length > 0 && tomtomKey
       ? fetchTrafficDynamic(trafficCityNames, route, tomtomKey)
       : Promise.resolve(null),
   ]);
 
-  // Route-specific live data
+  // ── ROUTE BLOCK ─────────────────────────────────────────────────
   let routeBlock = "";
   if (route) {
-    const routeType = classifyRoute(route.origin, route.destination);
-    const peak      = isPeakHour();
-    const [liveData, distData] = await Promise.all([
+    const peak = isPeakHour();
+
+    // Geocode origin + destination for coordinate-based classification
+    const [originCoords, destCoords] = await Promise.all([
+      geocode(route.origin),
+      geocode(route.destination),
+    ]);
+
+    // Distance + live time
+    const distData = originCoords && destCoords
+      ? await (async () => {
+          try {
+            const key = process.env.TOMTOM_API_KEY;
+            if (key) {
+              const r = await timedFetch(
+                `https://api.tomtom.com/routing/1/calculateRoute/${originCoords.lat},${originCoords.lon}:${destCoords.lat},${destCoords.lon}/json?key=${key}&travelMode=car&traffic=true`,
+                {}, 7000
+              );
+              const d = await r.json();
+              const s = d?.routes?.[0]?.summary;
+              if (s) {
+                const km       = parseFloat((s.lengthInMeters/1000).toFixed(1));
+                const mins     = Math.round(s.travelTimeInSeconds/60);
+                const freeFlow = Math.round(s.noTrafficTravelTimeInSeconds/60);
+                const delay    = Math.max(0,Math.round(s.trafficDelayInSeconds/60));
+                console.log(`[ROUTING OK] TomTom: ${km}km, ${mins}min live, ${delay}min delay`);
+                return { km, travelMins:mins, freeFlowMins:freeFlow, delayMins:delay, source:"TomTom live" };
+              } else {
+                console.log(`[ROUTING FAIL] TomTom returned no route summary. Response:`, JSON.stringify(d).slice(0,200));
+              }
+            }
+            // OSRM fallback
+            const r2 = await timedFetch(
+              `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=false`,
+              {}, 5000
+            );
+            const d2 = await r2.json();
+            const rt2 = d2?.routes?.[0];
+            if (rt2) {
+              const km2 = parseFloat((rt2.distance/1000).toFixed(1));
+              const m2  = Math.round(rt2.duration/60);
+              console.log(`[ROUTING OK] OSRM fallback: ${km2}km, ${m2}min free-flow`);
+              return { km:km2, travelMins:m2, freeFlowMins:m2, delayMins:0, source:"OSRM (free-flow only, no live traffic)", crossCheck:null };
+            } else {
+              console.log(`[ROUTING FAIL] OSRM also returned nothing`);
+            }
+          } catch(routeErr) {
+            console.log(`[ROUTING ERROR]`, routeErr.message);
+          }
+          return null;
+        })()
+      : null;
+
+    // Classify route
+    const routeType = await classifyRouteByCoords(originCoords, destCoords, distData?.km);
+
+    // Fare data + motor parks in parallel
+    const [liveData, motorParks] = await Promise.all([
       fetchLiveFareData(route.origin, route.destination, routeType),
-      fetchRoadDistance(route.origin, route.destination),
+      fetchMotorParks(route.origin, routeType),
+    ]);
+
+    // Route weather (per-point OWM if key available)
+    const [originWeather, destWeather] = await Promise.all([
+      originCoords ? fetchOWM(originCoords.lat, originCoords.lon, route.origin) : Promise.resolve(null),
+      destCoords   ? fetchOWM(destCoords.lat,   destCoords.lon,   route.destination) : Promise.resolve(null),
     ]);
 
     routeBlock += `\n📍 ROUTE: ${route.origin} → ${route.destination}\n`;
-    routeBlock += `  TYPE: ${routeType === "interstate" ? "Interstate" : "City trip"}\n`;
+
+    const typeLabel = routeType === "intra-city" ? "Intra-city trip"
+                    : routeType === "intra-state" ? "Intra-state trip (same state)"
+                    : "Interstate trip";
+    routeBlock += `  TYPE: ${typeLabel}\n`;
     routeBlock += `  PEAK_HOUR: ${peak ? "YES — expect heavy traffic" : "No"}\n`;
 
     if (distData) {
       routeBlock += `  DISTANCE: ${distData.km}km [${distData.source}]\n`;
-      routeBlock += `  TRAVEL_TIME_WITH_TRAFFIC: ${fmtMins(distData.travelMins)}\n`;
+      routeBlock += `  TRAVEL_TIME_NOW: ${fmtMins(distData.travelMins)}\n`;
       if (distData.delayMins > 5) {
         routeBlock += `  TRAFFIC_DELAY: +${distData.delayMins}min above free-flow\n`;
-        routeBlock += `  FREE_FLOW_TIME: ${fmtMins(distData.freeFlowMins)} without traffic\n`;
+        routeBlock += `  FREE_FLOW_TIME: ${fmtMins(distData.freeFlowMins)} (no traffic)\n`;
       } else {
         routeBlock += `  TRAFFIC_DELAY: minimal — roads clear\n`;
       }
+      if (distData.crossCheck) routeBlock += `  CROSS_CHECK: ${distData.crossCheck}\n`;
     } else {
       routeBlock += `  DISTANCE: unavailable\n`;
+      routeBlock += `  TRAVEL_TIME_NOW: unavailable — do not guess a number\n`;
     }
 
-    // Confidence gate signal — AI behaviour depends on this
-    routeBlock += `  FARE_STATUS: ${liveData?.fareStatus || "UNKNOWN"}\n`;
-    if (liveData?.fareRange) {
-      routeBlock += `  LIVE_FARE: ${liveData.fareRange} — verified from web, use this\n`;
+    // Route weather
+    if (originWeather || destWeather) {
+      routeBlock += `  ROUTE_WEATHER:\n`;
+      if (originWeather) routeBlock += `    ${route.origin}: ${originWeather.temp}°C ${originWeather.desc}${originWeather.hazard}\n`;
+      if (destWeather)   routeBlock += `    ${route.destination}: ${destWeather.temp}°C ${destWeather.desc}${destWeather.hazard}\n`;
     }
-    if (liveData?.fuelPrice) {
-      routeBlock += `  FUEL_PRICE: ${liveData.fuelPrice} per litre\n`;
+    if (isHarmattan) routeBlock += `  HARMATTAN_SEASON: YES — dust haze possible on northern routes, reduce speed\n`;
+
+    // Motor parks
+    if (motorParks?.length) {
+      routeBlock += `  MOTOR_PARK_LIVE:\n`;
+      motorParks.forEach(p => { routeBlock += `    • ${p}\n`; });
     }
+
+    // Fare
+    if (liveData?.fareStatus === "FARE_VERIFIED" && liveData.fareRange) {
+      routeBlock += `  FARE_VERIFIED: ${liveData.fareRange} — from recent web search, use this\n`;
+    } else {
+      routeBlock += `  NO_LIVE_FARE — use your own knowledge to estimate or say confirm at park\n`;
+    }
+    if (liveData?.fuelPrice) routeBlock += `  FUEL_PRICE: ${liveData.fuelPrice} per litre\n`;
     if (liveData?.topSnippets?.length) {
       routeBlock += `  WEB_SNIPPETS:\n`;
       liveData.topSnippets.forEach(s => { routeBlock += `    • ${s}\n`; });
     }
-    if (lagosIntraCity) {
-      routeBlock += `  LAGOS_INTRA_CITY: true\n`;
-    }
   }
 
-  // Hotel links
+  // ── HOTEL LINKS ─────────────────────────────────────────────────
   let hotelBlock = "";
   if (/hotel|accommodation|stay|lodge|guesthouse|where to sleep|book a room/i.test(userMsg)) {
     const city = mentionedCities[0]?.name || "Nigeria";
@@ -656,9 +786,9 @@ async function buildContext(userMsg) {
 
   const webResults = await fetchWebSearch(userMsg, mentionedCities);
 
-  // Assemble
+  // ── ASSEMBLE CONTEXT ─────────────────────────────────────────────
   const hr = "═".repeat(52);
-  let ctx  = `\n${hr}\nLIVE DATA — Lagos time: ${now}\n${hr}\n`;
+  let ctx  = `\n${hr}\nLIVE DATA — Nigeria time: ${now}\n${hr}\n`;
 
   ctx += "\n💱 EXCHANGE_RATES:\n";
   if (rates) {
@@ -675,6 +805,7 @@ async function buildContext(userMsg) {
   }
 
   ctx += "\n🌤 WEATHER:\n";
+  const weatherAll = weatherBatch;
   if (weatherAll?.length) {
     const rel   = mentionedNames.length
       ? weatherAll.filter(w => mentionedNames.some(n =>
@@ -683,29 +814,36 @@ async function buildContext(userMsg) {
       : [];
     const other = weatherAll.filter(w => !rel.includes(w));
     [...rel, ...other].slice(0, 20).forEach(w => {
-      const floodRisk = ["Lagos","Port Harcourt","Warri","Yenagoa","Asaba","Onitsha"].includes(w.name);
-      const warn = w.rain ? (floodRisk ? " ⚠️ Flood risk — roads may be impassable" : " ⚠️ Rain — roads may be affected") : "";
-      ctx += `  ${w.name}: ${w.temp}°C ${w.desc}${warn}\n`;
+      ctx += `  ${w.name}: ${w.temp}°C ${w.desc}${w.hazard || ""}\n`;
     });
   } else {
     ctx += `  UNAVAILABLE\n`;
   }
 
-  ctx += "\n🚦 LIVE_ROAD_CONDITIONS:\n";
+  ctx += "\n🚦 LIVE_ROAD_CONDITIONS (REPORT THIS IF DATA EXISTS):\n";
   if (traffic?.length) {
     const heavy    = traffic.filter(t => t.pct >= 70).length;
     const moderate = traffic.filter(t => t.pct >= 40 && t.pct < 70).length;
     const clear    = traffic.filter(t => t.pct < 40).length;
     ctx += `  Summary: ${heavy} heavy / ${moderate} moderate / ${clear} clear\n`;
     traffic.forEach(t => { ctx += `  ${t.text}\n`; });
+    ctx += `  ← YOU MUST include these road conditions in your response\n`;
   } else if (trafficCityNames.length > 0) {
     ctx += `  NO_DATA for ${trafficCityNames.join(", ")} — do not mention traffic\n`;
   } else {
     ctx += `  NO_CITY_DETECTED\n`;
   }
 
-  if (routeBlock)  ctx += routeBlock;
-  if (hotelBlock)  ctx += hotelBlock;
+  if (routeBlock) ctx += routeBlock;
+  if (hotelBlock) ctx += hotelBlock;
+
+  ctx += "\n✅ LIVE_DATA_STATUS:\n";
+  ctx += `  time: OK\n`;
+  ctx += `  rates: ${rates ? "OK" : "UNAVAILABLE"}\n`;
+  ctx += `  advisory: ${advisory?.summary ? "OK" : "UNAVAILABLE"}\n`;
+  ctx += `  weather: ${weatherAll?.length ? "OK" : "UNAVAILABLE"}\n`;
+  ctx += `  traffic: ${traffic?.length ? "OK" : (trafficCityNames.length > 0 ? "NO_DATA" : "NO_CITY")}\n`;
+  ctx += `  route_block: ${routeBlock ? "OK" : "ABSENT"}\n`;
 
   ctx += "\n🔍 WEB_SEARCH_RESULTS:\n";
   if (webResults?.length) webResults.forEach(r => { ctx += `  • ${r}\n`; });
@@ -713,12 +851,13 @@ async function buildContext(userMsg) {
 
   const primary = pickPrimaryCity(mentionedCities, weatherAll, route);
   if (primary) ctx += `\n📍 HEADER_CITY: ${primary.name} ${primary.temp}°C ${primary.desc}\n`;
+  else ctx += `\n📍 HEADER_CITY: UNAVAILABLE\n`;
 
   ctx += `\n💬 FOLLOWUP_HINT: `;
-  if (route)                                             ctx += `Trip question — ask one: departure time, luggage, budget, return same day.\n`;
-  else if (/safe|security|danger/i.test(userMsg))        ctx += `Ask their specific area or purpose of visit.\n`;
-  else if (/hotel|stay|accommodation/i.test(userMsg))    ctx += `Ask budget per night or number of nights.\n`;
-  else                                                   ctx += `Ask one relevant practical question.\n`;
+  if (route)                                           ctx += `Trip question — ask one: departure time, luggage, budget, return same day.\n`;
+  else if (/safe|security|danger/i.test(userMsg))      ctx += `Ask their specific area or purpose of visit.\n`;
+  else if (/hotel|stay|accommodation/i.test(userMsg))  ctx += `Ask budget per night or number of nights.\n`;
+  else                                                 ctx += `Ask one relevant practical question.\n`;
 
   ctx += `\n${hr}\n`;
   return ctx;
@@ -739,7 +878,6 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST")    return res.status(405).json({ error: "Method not allowed" });
 
-  // Rate limit
   const ip = (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown")
     .split(",")[0].trim();
   if (!checkRateLimit(ip)) {
@@ -754,16 +892,10 @@ export default async function handler(req, res) {
     if (!messages?.length) return res.status(400).json({ error: "messages required" });
 
     const userMsg = [...messages].reverse().find(m => m.role === "user")?.content || "";
+    console.log(`\n[REQUEST] "${userMsg.slice(0,80)}"`);
     const liveCtx = await buildContext(userMsg);
+    console.log(`[LIVE CTX]\n${liveCtx}`);
 
-    // ── Correct message assembly ────────────────────────────────
-    // [system: identity+rules] sent from App.jsx
-    // [user/assistant: few-shot + history] sent from App.jsx
-    // [system: live data] ← injected here as second system message
-    // [user: clean message] ← last user message, unmodified
-    //
-    // Strip any system messages that came after the first one
-    // (old architecture used to append live data to user content)
     const systemMsgs = messages.filter(m => m.role === "system");
     const convMsgs   = messages.filter(m => m.role !== "system");
     const lastUser   = convMsgs[convMsgs.length - 1];
@@ -772,28 +904,55 @@ export default async function handler(req, res) {
     if (!lastUser) return res.status(400).json({ error: "No user message found" });
 
     const assembled = [
-      ...systemMsgs.slice(0, 1),          // identity system prompt (first only)
-      ...priorConv,                        // few-shot examples + conversation history
-      { role: "system", content: liveCtx }, // live data as second system message
-      { role: "user",   content: lastUser.content }, // clean user message
+      ...systemMsgs.slice(0, 1),
+      ...priorConv,
+      { role: "system", content: liveCtx },
+      { role: "user",   content: lastUser.content },
     ];
 
-    const groqRes = await timedFetch("https://api.groq.com/openai/v1/chat/completions", {
-      method:  "POST",
-      headers: { "Authorization": "Bearer " + GROQ_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model:       "llama-3.3-70b-versatile",
-        messages:    assembled,
-        temperature: temperature ?? 0.4,
-        max_tokens:  max_tokens  ?? 1000,
-      }),
-    }, 25000);
+    const callGroq = async (msgs, temp) => {
+      const groqRes = await timedFetch("https://api.groq.com/openai/v1/chat/completions", {
+        method:  "POST",
+        headers: { "Authorization": "Bearer " + GROQ_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model:       "llama-3.3-70b-versatile",
+          messages:    msgs,
+          temperature: temp ?? 0.4,
+          max_tokens:  max_tokens  ?? 1200,
+        }),
+      }, 25000);
+      if (!groqRes.ok) {
+        const e = await groqRes.json().catch(() => ({}));
+        return { ok:false, status:groqRes.status, error:e };
+      }
+      return { ok:true, data:await groqRes.json() };
+    };
 
-    if (!groqRes.ok) {
-      const e = await groqRes.json().catch(() => ({}));
-      return res.status(groqRes.status).json({ error: e });
+    const isValid = (content) => {
+      if (!content) return false;
+      const lines = content.trim().split(/\r?\n/);
+      const header = lines[0] || "";
+      const hasLive = /Live:/i.test(header);
+      const hasPipes = header.split("|").length >= 3;
+      return hasLive && hasPipes;
+    };
+
+    let resp = await callGroq(assembled, temperature);
+    if (!resp.ok) {
+      return res.status(resp.status).json({ error: resp.error });
     }
-    return res.status(200).json(await groqRes.json());
+
+    const firstText = resp.data?.choices?.[0]?.message?.content || "";
+    if (!isValid(firstText)) {
+      const strict = {
+        role: "system",
+        content: "FORMAT CHECK FAILED. Fix output: first line must be 'Live:' header with 3 fields. If any LIVE DATA field is UNAVAILABLE, say 'unavailable' and do not guess. Follow the format exactly.",
+      };
+      const retryMsgs = [...assembled.slice(0, -1), strict, assembled[assembled.length - 1]];
+      const retry = await callGroq(retryMsgs, 0.2);
+      if (retry.ok) return res.status(200).json(retry.data);
+    }
+    return res.status(200).json(resp.data);
 
   } catch (err) {
     console.error("[NaijaTrip]", err.message);

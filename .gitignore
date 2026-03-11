@@ -25,3 +25,12 @@ dist-ssr
 
 .vercel
 .env
+
+.env*.local
+
+# Local study report (do not commit)
+docs/REPORT.md
+
+# Stray local files
+-d
+-H

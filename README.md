@@ -1,16 +1,33 @@
-# React + Vite
+# NaijaTrip AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+NaijaTrip AI is a Nigeria-focused travel intelligence app that blends an LLM with live data sources (traffic, weather, exchange rates, advisories) to produce route briefs, fares, and safety guidance for trips across all 36 states and the FCT.
 
-Currently, two official plugins are available:
+## Stack
+- Frontend: React + Vite
+- Backend: Vercel Serverless (`api/chat.js`)
+- LLM: Groq (OpenAI-compatible chat endpoint)
+- Live data sources: TomTom, OpenWeather, LocationIQ, Serper
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick Start
+1. Install deps:
+   - `npm install`
+2. Create `.env` from `.env.example` and fill in:
+   - `GROQ_API_KEY`
+   - `TOMTOM_API_KEY`
+   - `OPENWEATHER_API_KEY`
+   - `LOCATIONIQ_API_KEY`
+   - `SERPER_API_KEY`
+3. Run the API:
+   - `npm run dev:api`
+4. Run the frontend:
+   - `npm run dev`
+5. Open `http://localhost:5173`
 
-## React Compiler
+## Notes
+- The frontend calls `/api/chat`. Vite proxies this to `http://localhost:3001` as configured in `vite.config.js`.
+- `npm run dev:api` runs `server.js`, which mounts `api/chat.js` locally.
+- Rate limits, timeouts, and output validation are enforced in `api/chat.js`.
+- Live data will be partial if any API key is missing.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Quality Checks
+- `npm run eval` runs a minimal response-format check against the local API.
