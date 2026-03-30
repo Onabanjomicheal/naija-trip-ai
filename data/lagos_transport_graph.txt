@@ -1,0 +1,667 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# LAGOS TRANSPORT KNOWLEDGE BASE — EXPANDED EDITION (March 2026)
+# Covers: BRT, Danfo, Keke Napep, Water Ferry, Traffic Patterns, Transfer Logic
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 1: ADMINISTRATIVE GEOGRAPHY
+# ─────────────────────────────────────────────────────────────────────────────
+
+Lagos State has 20 constitutional LGAs divided into 5 administrative divisions:
+Ikeja, Lagos Island, Badagry, Epe, and Ikorodu.
+
+## FULL LIST OF 20 LGAs + KEY AREAS
+
+- Agege         → Agege town, Pen Cinema, Orile Agege, Ogba, Ifako
+- Ajeromi-Ifelodun → Ajegunle, Amukoko, Boundary, Olodi-Apapa
+- Alimosho      → Ikotun, Egbeda, Ayobo, Ipaja, Abesan, Command, Shasha
+- Amuwo-Odofin  → Festac Town, Satellite Town, Mile 2, Ago Palace Way
+- Apapa         → Apapa, Wharf Road, Tincan Island, Burma Road, Creek Road
+- Badagry       → Badagry town, Ajara, Seme (border), Agbara
+- Epe           → Epe town, Ita Marun, Agbowa, Eredo
+- Eti-Osa       → Ikoyi, Victoria Island (VI), Lekki Phase 1, Obalende, Oniru
+- Ibeju-Lekki   → Lekki Free Trade Zone, Ajah, Ibeju, Abraham Adesanya
+- Ifako-Ijaiye  → Ifako, Ijaiye, Fagba, Ogba (part), Command
+- Ikeja         → Ikeja, Computer Village, Allen Avenue, Maryland, Oregun, Ojota (part)
+- Ikorodu       → Ikorodu town, Benson, Imota, Ogolonto, Majidun
+- Kosofe        → Ogudu, Ketu, Mile 12, Ojota, Alapere, Medina
+- Lagos Island  → Lagos Island, Balogun, Idumota, Marina, CMS, Tinubu Square, Broad Street
+- Lagos Mainland → Yaba, Ebute Metta, Oyingbo, Jibowu, Mushin (part)
+- Mushin        → Mushin, Oshodi (part), Idi-Araba, Isale Oshodi
+- Ojo           → Ojo town, Alaba International, Iba, Iyana Iba, Trade Fair
+- Oshodi-Isolo  → Oshodi, Isolo, Ejigbo, Okota, Ilasamaja
+- Shomolu       → Shomolu, Bariga, Ilupeju, Gbagada (part)
+- Surulere      → Surulere, Ojuelegba, Lawanson, Itire, Eric Moore, Aguda
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 2: TRANSPORT MODES — OVERVIEW
+# ─────────────────────────────────────────────────────────────────────────────
+
+## MODE TYPES IN LAGOS
+
+| Mode          | Operator       | Payment    | Comfort  | Reliability | Coverage         |
+|---------------|----------------|------------|----------|-------------|------------------|
+| BRT (Blue)    | LAGBUS/LAMATA  | Cowry Card | High     | Medium-High | Major corridors  |
+| BRT (Red)     | LAGBUS         | Cowry Card | High     | Medium      | Inner city       |
+| Danfo (Yellow)| Private        | Cash       | Low      | Variable    | City-wide        |
+| Keke Napep    | Private        | Cash       | Medium   | High        | Local/last-mile  |
+| Okada (Bike)  | Private        | Cash       | Low      | High        | Last-mile        |
+| Ferry         | LASWA/Private  | Cash/Card  | High     | Low-Medium  | Waterfront zones |
+| Ride-hail     | Bolt/Uber      | App        | High     | High        | City-wide        |
+| Minibus       | Private        | Cash       | Low-Med  | Variable    | Suburban         |
+
+## NOTES
+- Okada is officially banned on expressways and many major roads; still operates on inner roads.
+- Cowry Card is rechargeable, mandatory for BRT. Top-up at BRT terminals.
+- Danfo fares are negotiable during off-peak and fixed (higher) during peak/rain.
+- Keke does not operate on expressways (Lagos law).
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 3: BRT ROUTES — FULL CORRIDORS
+# ─────────────────────────────────────────────────────────────────────────────
+
+## BRT CORRIDOR 1: IKORODU – TBS (Blue BRT)
+Longest BRT route in Lagos. LAMATA/LAGBUS operated.
+
+Direction: Ikorodu → Mile 12 → Ketu → Ojota → Maryland → Anthony → Palmgrove → Gbagada → Oworonshoki → TBS/CMS
+
+Key Stops (in order):
+  Ikorodu Terminus → Benson → Owutu → Majidun → Irawo → Mile 12 →
+  Ketu → Ojota → Maryland → Anthony → Palmgrove → Gbagada Roundabout →
+  Oworonshoki → Onipanu → Jibowu → Yaba → Oyingbo → CMS → TBS
+
+Typical Fare (2026): ₦960 – ₦970 (full route)
+Segment fares:
+  Ikorodu → Mile 12:     ₦290
+  Ikorodu → Ojota:       ₦450
+  Ikorodu → Maryland:    ₦600
+  Ikorodu → TBS:         ₦960
+  Ojota → TBS:           ₦520
+  Mile 12 → TBS:         ₦700
+  Maryland → TBS:        ₦400
+
+Peak Duration: 70 – 110 min (full route)
+Off-Peak Duration: 55 – 80 min
+Notes: Prone to delay at Ketu junction, Maryland underbridge, and Jibowu.
+
+---
+
+## BRT CORRIDOR 2: OSHODI – OBALENDE (Blue BRT)
+Via Apongbon bridge or Lagos Island express.
+
+Direction: Oshodi → Mushin → Ojuelegba → Costain → Iganmu → Ijora → Obalende
+
+Key Stops:
+  Oshodi Terminal → Mushin Roundabout → Ojuelegba → Costain → Iganmu →
+  Ijora → Apongbon → Lagos Island → Obalende
+
+Typical Fare (2026): ₦630
+Peak Duration: 40 – 65 min
+Off-Peak Duration: 30 – 45 min
+Notes: Very high frequency in the morning. Oshodi Terminal 2 is primary boarding point.
+
+---
+
+## BRT CORRIDOR 3: IYANA IPAJA – OBALENDE (Blue BRT)
+Serves western Lagos corridor.
+
+Direction: Iyana Ipaja → Agege Motor Road → Oshodi → Ojuelegba → Obalende
+
+Key Stops:
+  Iyana Ipaja → Ikeja → Agege Motor Road → Oshodi →
+  Mushin → Ojuelegba → Costain → Obalende
+
+Typical Fare (2026): ₦1,090
+Peak Duration: 65 – 90 min
+Off-Peak Duration: 50 – 70 min
+Notes: Often fastest to change at Oshodi and board another BRT.
+
+---
+
+## BRT CORRIDOR 4: MILE 2 – TBS / CMS (Blue BRT)
+Serves Amuwo-Odofin and Apapa corridor.
+
+Direction: Mile 2 → Orile → Costain → Ijora → TBS
+
+Key Stops:
+  Mile 2 → Orile → Iganmu → Costain → Ijora → Apongbon → TBS/CMS
+
+Typical Fare (2026): ₦680
+Peak Duration: 40 – 60 min
+Off-Peak Duration: 30 – 45 min
+Notes: Connects Festac/Satellite Town via Mile 2 feeder danfo.
+
+---
+
+## BRT CORRIDOR 5: BERGER – OSHODI (Inner City BRT)
+
+Direction: Berger → Ojodu → Agege → Ogba → Oshodi
+
+Key Stops:
+  Berger → Ojodu-Berger → Agege → Pen Cinema → Oshodi
+
+Typical Fare (2026): ₦580
+Peak Duration: 45 – 65 min
+Off-Peak Duration: 35 – 50 min
+Notes: Feeds into Oshodi hub for onward island routes.
+
+---
+
+## BRT CORRIDOR 6: BERGER – AJAH (Long BRT)
+One of the longest single BRT routes.
+
+Direction: Berger → Maryland → Ojota → CMS → VI → Lekki → Ajah
+
+Key Stops:
+  Berger → Maryland → Palmgrove → Gbagada → CMS → Obalende →
+  Five Cowrie Creek → Lekki Phase 1 → Chevron → VGC → Ajah
+
+Typical Fare (2026): ₦1,710
+Peak Duration: 90 – 130 min
+Off-Peak Duration: 70 – 100 min
+Notes: Subject to Third Mainland Bridge / Carter Bridge congestion. Avoid 7–10am, 4–8pm.
+
+---
+
+## BRT CORRIDOR 7: OSHODI – AJAH (Via Obalende)
+Often done as a two-leg journey.
+
+Leg 1: Oshodi → Obalende (₦630, ~40-55 min)
+Leg 2: Obalende → Ajah (₦630–800, ~35–55 min)
+Total Fare: ₦1,260 – ₦1,430
+Total Time: 75 – 110 min
+
+---
+
+## BRT CORRIDOR 8: OBALENDE – AJAH / LEKKI
+
+Direction: Obalende → Five Cowrie Creek Bridge → Lekki Phase 1 → Chevron → VGC → Ajah
+
+Key Stops:
+  Obalende → Falomo → Maroko → Lekki Phase 1 → Chevron →
+  Jakande → VGC Junction → Ajah
+
+Typical Fare (2026): ₦630 (Obalende–Lekki Phase 1), ₦800–900 (Obalende–Ajah)
+Peak Duration: 40 – 70 min
+Off-Peak Duration: 30 – 50 min
+Notes: BRT and Danfo compete strongly on this corridor.
+
+---
+
+## BRT CORRIDOR 9: AGBARA – MILE 2 (Badagry Expressway Corridor)
+Emerging route for Ojo/Badagry traffic.
+
+Direction: Agbara → Ojo → Trade Fair → Alaba → Mile 2
+
+Typical Fare (2026): ₦700 – ₦900 (segment-dependent)
+Peak Duration: 60 – 90 min
+Off-Peak Duration: 45 – 70 min
+Notes: Heavy truck traffic near Alaba/Mile 2 junction.
+
+
+---
+
+## BRT CORRIDOR 10: IKEJA - CMS / TBS (Inner City Express)
+Connects Ikeja core to Lagos Island via major hubs.
+
+Direction: Ikeja -> Maryland -> Anthony -> Palmgrove -> Oworonshoki -> Jibowu -> Yaba -> Oyingbo -> CMS -> TBS
+
+Key Stops:
+  Ikeja Terminal -> Maryland -> Anthony Village -> Palmgrove -> Oworonshoki ->
+  Jibowu -> Yaba -> Oyingbo -> CMS -> TBS
+
+Typical Fare (2026): NGN 650 - NGN 850
+Peak Duration: 60 - 95 min
+Off-Peak Duration: 45 - 75 min
+Notes: Watch for heavy delays at Third Mainland Bridge and Jibowu.
+
+---
+
+## BRT CORRIDOR 11: IKEJA - OBALENDE - VICTORIA ISLAND (Mixed Service)
+Common transfer pattern from mainland to island.
+
+Direction: Ikeja -> Maryland -> Ojota -> Oworonshoki -> CMS -> Obalende -> Victoria Island
+
+Key Stops:
+  Ikeja -> Maryland -> Ojota -> Oworonshoki -> CMS ->
+  Obalende -> Falomo -> Victoria Island
+
+Typical Fare (2026): NGN 750 - NGN 1,050
+Peak Duration: 70 - 110 min
+Off-Peak Duration: 50 - 85 min
+Notes: Transfer often required at Obalende during peak hours.
+
+---
+
+## BRT CORRIDOR 12: CMS / TBS - LEKKI PHASE 1 - AJAH (Coastal)
+Primary island-to-Lekki corridor with high demand.
+
+Direction: CMS -> Obalende -> Falomo -> Lekki Phase 1 -> Jakande -> Chevron -> VGC -> Ajah
+
+Key Stops:
+  CMS -> Obalende -> Falomo -> Lekki Phase 1 -> Jakande ->
+  Chevron -> VGC Junction -> Ajah
+
+Typical Fare (2026): NGN 700 - NGN 1,000
+Peak Duration: 50 - 90 min
+Off-Peak Duration: 35 - 70 min
+Notes: Congestion around Lekki toll corridor is common during peak.
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 4: DANFO (MINIBUS) ROUTES
+# ─────────────────────────────────────────────────────────────────────────────
+
+Danfo operates city-wide on fixed but informal routes. Capacity: 14–18 passengers.
+Payment: Cash only. No fixed stops — flag down or shout destination.
+Fares: 10–30% cheaper than BRT, but slower and less predictable.
+
+## KEY DANFO ROUTES & FARES (2026)
+
+Route                                  | Fare       | Time (Peak) | Common Shouts
+---------------------------------------|------------|-------------|-------------------------------
+Oshodi → CMS / Marina                 | ₦400–500   | 50–75 min   | "CMS! Marina!"
+Oshodi → Obalende                     | ₦400–500   | 40–65 min   | "Obalende!"
+Oshodi → Ikeja / Computer Village     | ₦300–400   | 25–45 min   | "Computer Village! Ikeja!"
+Oshodi → Ejigbo                       | ₦250–350   | 20–35 min   | "Ejigbo!"
+Oshodi → Mushin                       | ₦200–300   | 15–25 min   | "Mushin!"
+Oshodi → Agege                        | ₦300–400   | 25–40 min   | "Agege!"
+Oshodi → Mile 2                       | ₦350–450   | 30–50 min   | "Mile 2!"
+Ikeja → Obalende                      | ₦600–800   | 50–75 min   | "Obalende! Marina!"
+Ikeja → Iyana Ipaja                   | ₦300–400   | 25–40 min   | "Iyana Ipaja!"
+Ikeja → Ojota / Ketu                  | ₦250–350   | 20–35 min   | "Ojota! Ketu!"
+Iyana Ipaja → Agege                   | ₦200–300   | 15–25 min   | "Agege! Pen Cinema!"
+Iyana Ipaja → Oshodi                  | ₦300–400   | 30–50 min   | "Oshodi!"
+Iyana Ipaja → Ikotun / Egbeda         | ₦250–350   | 20–35 min   | "Ikotun! Egbeda!"
+Obalende → VI / Eko Hotel             | ₦300–400   | 15–25 min   | "VI! Eko Hotel!"
+Obalende → Ikoyi                      | ₦250–350   | 10–20 min   | "Ikoyi!"
+Obalende → Lekki Phase 1              | ₦500–700   | 30–55 min   | "Lekki Phase 1!"
+Obalende → Ajah                       | ₦700–900   | 45–70 min   | "Ajah!"
+VI → Lekki Phase 1                    | ₦400–500   | 25–40 min   | "Lekki Phase 1!"
+Lekki Phase 1 → Ajah                  | ₦350–500   | 20–35 min   | "Ajah!"
+Ajah → Abraham Adesanya               | ₦250–350   | 15–25 min   | "Abraham Adesanya!"
+Mile 2 → Alaba                        | ₦250–350   | 20–35 min   | "Alaba!"
+Mile 2 → Festac Town                  | ₦200–300   | 15–25 min   | "Festac!"
+Mile 2 → Satellite Town               | ₦300–400   | 20–35 min   | "Satellite!"
+Mile 2 → Badagry                      | ₦700–1,000 | 60–90 min   | "Badagry!"
+Yaba → CMS / TBS                      | ₦250–350   | 15–30 min   | "CMS! TBS!"
+Yaba → Obalende                       | ₦300–400   | 20–35 min   | "Obalende!"
+Yaba → Ikeja                          | ₦400–500   | 35–55 min   | "Ikeja!"
+Ketu → Ojota                          | ₦150–250   | 10–20 min   | "Ojota!"
+Ketu → Mile 12                        | ₦200–300   | 15–25 min   | "Mile 12!"
+Mile 12 → Ikorodu                     | ₦400–600   | 35–55 min   | "Ikorodu!"
+Egbeda → Oshodi                       | ₦300–400   | 25–45 min   | "Oshodi!"
+Egbeda → Ikotun                       | ₦150–250   | 10–20 min   | "Ikotun!"
+Surulere → CMS                        | ₦300–400   | 25–45 min   | "CMS! Marina!"
+Surulere → Oshodi                     | ₦250–350   | 20–35 min   | "Oshodi!"
+Bariga → Oworonsoki                   | ₦200–300   | 15–25 min   | "Oworonsoki!"
+Bariga → Anthony / Maryland           | ₦200–300   | 15–25 min   | "Maryland! Anthony!"
+Ikorodu → Mile 12                     | ₦350–500   | 35–55 min   | "Mile 12!"
+Apapa → Mile 2                        | ₦350–450   | 30–50 min   | "Mile 2!"
+Apapa → Orile                         | ₦300–400   | 25–40 min   | "Orile!"
+Epe → Ajah                            | ₦500–700   | 40–60 min   | "Ajah!"
+Epe → Ikorodu                         | ₦600–800   | 50–75 min   | "Ikorodu!"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 5: KEKE NAPEP (TRICYCLE) ROUTES
+# ─────────────────────────────────────────────────────────────────────────────
+
+Keke serves last-mile and intra-community trips. Capacity: 3 passengers.
+Keke does NOT operate on expressways. It covers estate roads, inner streets, and markets.
+Fares are per person (shared) or full charter (solo fare = 2.5–3× per-person rate).
+
+## KEY KEKE ZONES & TYPICAL FARES
+
+### ISLAND ZONES
+Route                                       | Shared Fare  | Notes
+--------------------------------------------|--------------|------------------------------
+Obalende Bus Stop → Falomo / Awolowo Rd     | ₦200–300     | Ikoyi inner streets
+Obalende → Race Course                      | ₦200–300     |
+Lekki Phase 1 Gate → Chevron               | ₦300–400     | Lekki inner routes
+Chevron → Jakande Estate                    | ₦200–300     |
+Ajah → Abraham Adesanya                     | ₦250–350     | Estate access
+VI internal (Adeola Odeku, Ozumba Mbadiwe) | ₦200–400     | Short hops
+
+### MAINLAND ZONES
+Route                                       | Shared Fare  | Notes
+--------------------------------------------|--------------|------------------------------
+Oshodi Terminals → Bolade                   | ₦150–250     | Oshodi inner
+Mushin → Ilasamaja                          | ₦200–300     |
+Yaba → Akoka / Unilag gate                  | ₦200–300     |
+Surulere → Ojuelegba                        | ₦200–300     |
+Agege → Pen Cinema / Opebi                  | ₦150–250     |
+Ikeja → Allen Avenue / Adeniyi Jones        | ₦200–300     |
+Maryland → Palmgrove                        | ₦200–300     |
+Ikorodu → Benson / Imota junction           | ₦300–400     |
+Egbeda → Isheri / Idimu                     | ₦200–300     |
+Festac Town internal (First–10th Avenue)    | ₦150–250     |
+Satellite Town internal                     | ₦150–250     |
+
+### OUTER AREA ZONES
+Route                                       | Shared Fare  | Notes
+--------------------------------------------|--------------|------------------------------
+Badagry → Ajara / Gberefu                   | ₦300–500     | Longer outer trips
+Epe Town → market / outskirts               | ₦250–400     |
+Ibeju / LFTZ access roads                   | ₦300–600     | Poor road access
+
+## KEKE CHARTER RATES (Solo passenger)
+Charter = 2.5–3× the per-person shared fare. Always negotiate.
+Late night premium: Add 50–100% to base rate after 10pm.
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 6: FERRY / WATER TRANSPORT (LASWA)
+# ─────────────────────────────────────────────────────────────────────────────
+
+Lagos has an active water transport network managed by LASWA and private operators.
+Useful for avoiding severe road gridlock, especially Apapa/Island/VI.
+
+## ACTIVE FERRY ROUTES (2026)
+
+Route                                    | Fare          | Duration  | Frequency
+-----------------------------------------|---------------|-----------|-------------
+Five Cowrie Creek → Marina (TBS)         | ₦500–800      | 20–30 min | Every 30 min
+Ikorodu → Marina / CMS                   | ₦1,200–1,500  | 45–60 min | Morning & evening
+Apapa → Marina                           | ₦1,000–1,200  | 25–35 min | Sporadic
+Badore (Ajah) → Marina                   | ₦1,500–2,000  | 45–65 min | Limited
+Ebute Metta → Apapa                      | ₦800–1,000    | 20–30 min | Sporadic
+
+## LASWA TERMINALS
+- Marina Terminal (CMS/TBS area) — main hub
+- Five Cowrie Creek Terminal (Lekki entrance)
+- Ikorodu Ferry Terminal
+- Apapa Terminal
+- Ebute Metta Terminal
+
+Notes:
+- Ferries subject to weather. Rough water or heavy rain = suspension.
+- Cowry Card NOT accepted; cash only at most terminals.
+- Water bus (LASWA) is more structured; private boats are cheaper but riskier.
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 7: MAJOR HUBS / SUPER STATIONS — EXPANDED
+# ─────────────────────────────────────────────────────────────────────────────
+
+## OSHODI TRANSPORT INTERCHANGE
+- Location: Oshodi, Mushin / Oshodi-Isolo LGA border
+- Terminals: Terminal 1 (BRT), Terminal 2 (Danfo/Minibus), Terminal 3 (Intra-city)
+- Connects to: Agege, Ikeja, Iyana Ipaja, Mile 2, Airport Road, Bariga, Ketu,
+               Ejigbo, Ajegunle, Berger, CMS, Obalende, Surulere, Mushin
+- Mode availability: BRT, Danfo, Keke (outer), Ride-hail
+- Landmark: Oshodi Under Bridge, Bolade Market
+
+## OBALENDE MOTOR PARK
+- Location: Eti-Osa LGA, gateway to Lagos Island and Lekki
+- Connects to: VI, Ikoyi, Lekki Phase 1, Ajah, CMS, Oshodi, Yaba, Mushin
+- Mode availability: BRT, Danfo, Keke (inner Island), Ferry (nearby)
+- Transfer point: Biggest island-entry hub; most mainland → island routes pass here
+
+## CMS / MARINA / TBS
+- Location: Lagos Island LGA
+- CMS (Church Mission Street), TBS (Tafawa Balewa Square), Marina = same cluster
+- Connects to: Yaba, Oyingbo, Ikorodu, Oshodi, Obalende, Lekki
+- Mode availability: BRT, Danfo, Ferry (Marina Terminal), Ride-hail
+
+## AJAH
+- Location: Ibeju-Lekki LGA
+- Connects to: Lekki Phase 1, Chevron, VGC, Abraham Adesanya, Epe, Ibeju-LFTZ
+- Mode availability: BRT, Danfo, Keke, Ride-hail
+- Key landmarks: Ajah roundabout, Shoprite Ajah, Abraham Adesanya junction
+
+## MILE 2
+- Location: Amuwo-Odofin LGA
+- Connects to: Festac Town, Satellite Town, Orile, Alaba, Ojo, Badagry direction, TBS
+- Mode availability: BRT, Danfo, Keke, Ride-hail
+- Key markets: Trade Fair, Alaba International (nearby)
+
+## IYANA IPAJA
+- Location: Alimosho LGA
+- Connects to: Agege, Abule Egba, Ipaja, Egbeda, Oshodi, Ayobo
+- Mode availability: BRT, Danfo, Keke
+- Notes: Western Lagos megahub; very high danfo frequency
+
+## BERGER (OJODU-BERGER)
+- Location: Ojodu, Ikeja LGA boundary
+- Connects to: Ikorodu (via Sagamu Rd), Ogba, Agege, Maryland, Ojota, Oshodi, Ajah
+- Mode availability: BRT, Danfo, Minibus, Ride-hail
+- Key note: Interstate buses to Ogun State depart from here
+
+## OJOTA
+- Location: Kosofe LGA
+- Connects to: Ketu, Mile 12, Ikorodu, Maryland, Berger, CMS
+- Mode availability: BRT, Danfo, Interstate minibus
+- Nearby: Lagos ibadan expressway on-ramp (interstate departure point)
+
+## YABA / JIBOWU
+- Location: Lagos Mainland LGA
+- Connects to: CMS, Obalende, Ikeja, Surulere, Oshodi, Bariga
+- Mode availability: BRT, Danfo, Keke, Ride-hail
+- Nearby: University of Lagos, Yaba College of Technology, Sabo Market
+
+## IKEJA
+- Location: Ikeja LGA (State capital)
+- Connects to: Computer Village, Allen Ave, Maryland, Oshodi, Ogba, Berger
+- Mode availability: BRT, Danfo, Keke, Ride-hail
+- Key areas: MMIA (Murtala Muhammed Airport), Computer Village, Oregun (industrial)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 8: COMPLETE FARE TABLE (Post March 2026 — 13% Increase Applied)
+# ─────────────────────────────────────────────────────────────────────────────
+
+From → To                             | Mode          | Fare (₦)      | Peak Time     | Notes
+--------------------------------------|---------------|---------------|---------------|------------------------------
+Oshodi → Obalende / CMS              | BRT           | ₦630          | 40–65 min     | Via Ojuelegba, Mushin
+Oshodi → Ajah / Lekki Phase 1        | BRT (2 legs)  | ₦1,260–1,430  | 75–115 min    | Change at Obalende
+Oshodi → Iyana Ipaja                 | BRT / Danfo   | ₦350–500      | 30–50 min     |
+Oshodi → Ejigbo                      | BRT / Danfo   | ₦350–450      | 20–40 min     |
+Oshodi → Mile 2                      | BRT / Danfo   | ₦580–700      | 35–55 min     |
+Oshodi → Berger                      | BRT           | ₦580          | 45–65 min     |
+Oshodi → Agege                       | Danfo         | ₦300–400      | 25–45 min     |
+Obalende → Ajah / Lekki             | BRT / Danfo   | ₦630–900      | 35–70 min     |
+Obalende → Ikoyi / VI               | Danfo / Keke  | ₦300–500      | 15–25 min     |
+Obalende → Marina / TBS             | Danfo / BRT   | ₦200–350      | 10–20 min     |
+Iyana Ipaja → Obalende              | BRT           | ₦1,090        | 65–90 min     |
+Iyana Ipaja → Oshodi                | BRT / Danfo   | ₦350–500      | 30–50 min     |
+Mile 2 → TBS / CMS                  | BRT           | ₦680          | 35–55 min     |
+Berger → Ajah                       | BRT / Danfo   | ₦1,710        | 90–130 min    | Long corridor
+Berger → Oshodi                     | BRT           | ₦580          | 45–65 min     |
+Ikorodu → TBS / Obalende           | BRT           | ₦960–970      | 70–110 min    |
+Ikorodu → Mile 12                   | BRT / Danfo   | ₦350–500      | 35–55 min     |
+Marina → Lekki Phase 1              | Danfo         | ₦570          | 30–50 min     |
+Egbeda → Obalende                   | BRT / Danfo   | ₦1,030        | 50–75 min     |
+Ikotun → CMS / Marina               | Danfo         | ₦1,100        | 65–90 min     |
+Yaba → CMS                          | Danfo / BRT   | ₦250–350      | 15–30 min     |
+Surulere → CMS                      | Danfo         | ₦350–500      | 30–50 min     |
+Festac → Mile 2                     | Danfo         | ₦200–300      | 15–25 min     |
+VI → Lekki Phase 1                  | Danfo         | ₦400–500      | 25–40 min     |
+Lekki Phase 1 → Ajah               | Danfo / Keke  | ₦400–600      | 20–40 min     |
+Ajah → Abraham Adesanya             | Keke / Danfo  | ₦250–400      | 15–25 min     |
+Apapa → Orile / Mile 2              | Danfo         | ₦350–500      | 30–55 min     |
+Badagry → Mile 2                    | Danfo         | ₦700–1,000    | 60–100 min    |
+Epe → Ajah                          | Danfo         | ₦500–700      | 40–65 min     |
+Gbagada → CMS                       | BRT / Danfo   | ₦450–600      | 30–50 min     |
+Maryland → CMS                      | BRT / Danfo   | ₦400–520      | 25–45 min     |
+Ojota → Maryland                    | Danfo / BRT   | ₦250–350      | 15–25 min     |
+Ketu → Ojota                        | Danfo         | ₦150–250      | 10–20 min     |
+Mile 12 → Ketu                      | Danfo         | ₦200–300      | 15–25 min     |
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 9: TRANSFER LOGIC (REAL LAGOS ROUTING)
+# ─────────────────────────────────────────────────────────────────────────────
+
+## GOLDEN RULES OF LAGOS TRANSFERS
+
+1. Mainland → Island: Almost always through **Obalende** or **CMS/TBS**.
+2. Western Lagos → Island: Go through **Iyana Ipaja → Oshodi → Obalende**.
+3. Eastern Lagos → Island: Go through **Ojota → Maryland → TBS** or **Berger → Gbagada → CMS**.
+4. Lekki / Ajah destination: Hub through **Obalende** (most efficient).
+5. Badagry / Ojo direction: Route through **Mile 2**.
+6. Ikorodu → Anywhere: Start with BRT toward **Mile 12 or TBS**.
+7. Airport (MMIA): Drop at **Ikeja** or **Murtala Muhammed Airport Rd**, use ride-hail for terminal access.
+
+## COMMON MULTI-LEG JOURNEYS
+
+Journey                                  | Legs                                              | Total Fare   | Total Time (Peak)
+-----------------------------------------|---------------------------------------------------|--------------|--------------------
+Ikorodu → VI                            | Ikorodu→TBS (BRT) + TBS→Obalende (Danfo) + Keke  | ₦1,300–1,600 | 90–130 min
+Ajah → Oshodi                           | Ajah→Obalende (BRT/Danfo) + Obalende→Oshodi (BRT)| ₦1,260–1,700 | 75–120 min
+Ikotun → CMS                            | Ikotun→Oshodi (Danfo) + Oshodi→CMS (BRT)         | ₦900–1,200   | 70–110 min
+Festac → Lekki Phase 1                  | Festac→Mile 2 (Danfo) + Mile 2→TBS (BRT) + Obalende→Lekki (BRT) | ₦1,400–1,800 | 90–130 min
+Badagry → Lagos Island                  | Badagry→Mile 2 (Danfo) + Mile 2→TBS (BRT)        | ₦1,400–1,800 | 100–160 min
+Epe → CMS                               | Epe→Ajah (Danfo) + Ajah→Obalende (BRT) + Obalende→CMS (Danfo) | ₦1,600–2,200 | 120–180 min
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 10: TRAFFIC PATTERNS — DETAILED
+# ─────────────────────────────────────────────────────────────────────────────
+
+## PEAK HOUR WINDOWS
+
+| Period          | Times             | Severity     | Most Affected Zones                          |
+|-----------------|-------------------|--------------|----------------------------------------------|
+| Morning Peak    | 6:30am – 10:00am  | ★★★★★ Severe | All island bridges, Oshodi, Third Mainland   |
+| Afternoon Lull  | 10:00am – 2:30pm  | ★★ Mild      | Market areas, Balogun, Alaba                 |
+| Evening Peak    | 3:30pm – 8:30pm   | ★★★★★ Severe | Oshodi, Lekki-Epe Expressway, Carter Bridge  |
+| Night Off-Peak  | 8:30pm – 6:00am   | ★ Minimal    | Most corridors; exceptions below             |
+| Friday Evening  | 2:00pm – 10:00pm  | ★★★★★ Worst  | All routes; worst day of the week            |
+| Monday Morning  | 6:00am – 11:00am  | ★★★★★ Worst  | Island bridges, Maryland, Ojuelegba          |
+| Public Holiday  | Varied            | ★ Minimal    | Free flow on most routes                     |
+
+## BLACK SPOTS — CHRONIC CONGESTION ZONES
+
+| Zone / Road                         | Cause                                      | Worst Time          |
+|-------------------------------------|--------------------------------------------|---------------------|
+| Third Mainland Bridge               | Volume, breakdowns, construction           | 6:30–10am, 4–8pm    |
+| Carter Bridge (Lagos Island end)    | Narrow lanes, danfo mixing                 | 7–10am, 4–8pm       |
+| Eko Bridge (Costain)               | Merging traffic from Mile 2/Orile          | 6:30–10am           |
+| Oshodi Under Bridge / Bolade        | Market overflow, danfo loading             | 7am–9pm (almost all day) |
+| Ojota–Ketu corridor                 | Market trucks, LAWMA trucks                | 7–11am              |
+| Mile 2 – Alaba – Ojo Expressway     | Containers/trucks from Apapa               | 6am–12pm            |
+| Badagry Expressway (Mile 2–Festac)  | Truck traffic, road deterioration          | 6–11am, 4–8pm       |
+| Lekki-Epe Expressway (Phase 1–Ajah) | Population growth, insufficient lanes      | 7–10am, 4–9pm       |
+| Ojuelegba–Surulere                  | Narrow roads, market at Tejuosho           | 8–11am, 3–7pm       |
+| Maryland–Anthony–Gbagada            | BRT stops + danfo loading + overhead works | 7–10am              |
+| Agege Motor Road                    | Market traders, bad road surface           | 8am–7pm             |
+| Apapa Port access roads             | Container trucks queuing                   | All day (worst 7-11am) |
+| Ikorodu Road (Ketu–Maryland)        | High volume, construction zones            | 7–10am, 4–8pm       |
+| Iyana Ipaja to Oshodi               | High density feeder traffic                | 7–10am, 4–8pm       |
+
+## RAIN EFFECTS ON LAGOS TRAFFIC
+- Light rain (< 30 min): +20–40% to journey times.
+- Heavy downpour (sustained): +60–150% to journey times. Some routes impassable.
+- Flood-prone roads: Ago Palace Way, Iyana Iba, Jakande Estate, Alapere, Bariga, Gbagada low road.
+- Danfo fares increase by 30–100% during heavy rain ("rain fare" culture).
+- BRT fares are fixed but queues extend significantly.
+- Ride-hail surge pricing: 2×–4× during and after heavy rain.
+
+## DAY-OF-WEEK PATTERNS
+
+| Day         | Pattern                                                                    |
+|-------------|----------------------------------------------------------------------------|
+| Monday      | Extremely heavy; all corridors. Avoid island bridges before 10am.          |
+| Tuesday     | Heavy morning peak; moderates by afternoon.                                |
+| Wednesday   | Average; manageable if leaving before 7am or after 10am.                  |
+| Thursday    | Moderate; market days in some areas (Mile 12, Balogun) create local jams. |
+| Friday      | Worst day. Evening jam starts as early as 2pm. Avoid 3–10pm.              |
+| Saturday    | Heavy 9am–2pm (market/social trips). Light by evening.                    |
+| Sunday      | Light until church-out (11am–1pm spike). Free flow by 3pm.                |
+
+## MARKET DAY EFFECTS
+- Mile 12 Market: Monday & Thursday — heavy truck traffic, Ketu–Ojota route gridlock.
+- Balogun Market: Tuesday & Friday — Carter Bridge/CMS backed up to Obalende.
+- Alaba International Market: Monday, Wednesday — Mile 2 expressway backed up.
+- Computer Village (Ikeja): Saturday — Allen/Computer Village area standstill.
+- Ladipo Spare Parts (Mushin): Wednesday — Mushin corridor affected.
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 11: POPULAR MARKETS & COMMERCIAL HUBS
+# ─────────────────────────────────────────────────────────────────────────────
+
+Market / Hub                | Location            | Nearest Stop           | Main Goods
+----------------------------|---------------------|------------------------|------------------------------
+Balogun Market              | Lagos Island        | CMS / TBS              | Wholesale textiles, goods
+Computer Village            | Ikeja               | Ikeja BRT              | Electronics, phones, IT
+Mile 12 Market              | Kosofe / Ikorodu Rd | Mile 12 Bus Stop       | Food, provisions, farm produce
+Alaba International         | Ojo                 | Alaba Bus Stop         | Electronics, appliances
+Oshodi Market               | Oshodi              | Oshodi Terminal        | General goods, food
+Idumota Market              | Lagos Island        | Idumota                | Spare parts, general goods
+Ladipo Market               | Mushin              | Mushin / Ladipo        | Automobile spare parts
+Trade Fair Complex          | Ojo                 | Trade Fair             | General merchandise
+Tejuosho Market             | Surulere            | Ojuelegba              | Textiles, fashion, food
+Jankara Market              | Lagos Island        | Lagos Island           | Herbal, traditional goods
+Ebute Ero Market            | Lagos Island        | Marina / CMS           | Fresh produce, food
+Agbalata Market             | Badagry             | Badagry                | Local goods
+Aswani Market               | Isolo               | Ejigbo / Isolo         | Textiles
+Ketu Market                 | Kosofe              | Ketu Bus Stop          | Food, produce
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 12: LANDMARKS & NAVIGATION ALIASES
+# ─────────────────────────────────────────────────────────────────────────────
+
+Common spoken phrases / aliases the model should resolve to correct stops:
+
+Alias / Spoken Form                  → Canonical Location
+-------------------------------------|--------------------------------------------
+"Under Bridge"                       → Oshodi Under Bridge (Oshodi junction)
+"Oshodi Under Bridge"               → Oshodi Terminal / Bolade area
+"Owambe" (context-based)            → Victoria Island or Lekki (event venue area)
+"Mile 2"                             → Mile 2 Bus Stop, Amuwo-Odofin
+"Berger"                             → Ojodu-Berger Bus Stop
+"CMS"                                → Church Mission Street, Lagos Island
+"TBS"                                → Tafawa Balewa Square Bus Stop
+"Marina"                             → Marina Road, Lagos Island (near TBS / Ferry)
+"Obalende"                           → Obalende Motor Park
+"Computer Village"                   → Ikeja Computer Village (Pepple St / Gberigbe)
+"VI"                                 → Victoria Island
+"Lekki Phase 1"                     → Lekki Phase 1 Gate area
+"Abraham Adesanya"                  → Abraham Adesanya Estate junction, Ajah
+"Chevron"                            → Chevron Roundabout, Lekki
+"VGC"                                → Victoria Garden City, Lekki
+"Trade Fair"                         → Badagry Expressway Trade Fair Complex
+"Ilupeju"                            → Ilupeju Estate, Shomolu LGA
+"Pen Cinema"                         → Agege Pen Cinema junction
+"Anthony Village"                    → Anthony Bus Stop, Ikorodu Road
+"Gbagada Phase 1/2"                 → Gbagada Residential Area, Kosofe/Shomolu border
+"Yaba Roundabout"                    → Yaba / Herbert Macaulay Way junction
+"Costain"                            → Costain Bus Stop, Mushin / Iganmu boundary
+"Ijora"                              → Ijora, near Apapa causeway
+"Sango" (Lagos context)             → Sango Ota, Ogun State (not to confuse with Oshodi)
+"Third Mainland"                     → Third Mainland Bridge
+"Carter Bridge"                      → Old Carter Bridge, Lagos Island entry
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 13: USAGE NOTES FOR iTrip AI
+# ─────────────────────────────────────────────────────────────────────────────
+
+## ROUTING LOGIC PRIORITIES
+1. Always validate terminal/stop names using LocationIQ, OSRM, or GTFS data first.
+2. Use this graph for transfer logic, realistic fares, and natural language explanations.
+3. Fares are 2026 post-increase estimates. Add ±15% margin for variation.
+4. Always account for time of day when quoting journey duration.
+5. During rain events, warn user of surge fares and possible flooding delays.
+6. For Apapa/port-bound routes, always warn about truck traffic.
+
+## DYNAMIC FARE TRIGGERS
+- Rain: +30–100% on danfo fares; ×2–4 on ride-hail.
+- Peak hour: +10–25% on danfo; BRT fares remain fixed.
+- Night (after 10pm): +50–100% on keke and danfo charter.
+- Public holiday: Normal or slightly lower.
+
+## COMFORT RANKING (Low → High)
+Danfo < Keke < BRT < Ride-hail / Ferry
+
+## SPEED RANKING OFF-PEAK (Slow → Fast)
+Keke < Danfo < BRT < Ride-hail (no traffic) < Ferry (water route)
+
+## SPEED RANKING PEAK HOUR
+Danfo ≈ BRT (both stuck) << Keke (shortcuts) << Ferry (unaffected) << Ride-hail (surge pricing)

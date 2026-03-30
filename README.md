@@ -1,12 +1,12 @@
 # NaijaTrip AI
 
-NaijaTrip AI is a Nigeria-focused travel intelligence app that blends an LLM with live data sources (traffic, weather, exchange rates, advisories) to produce route briefs, fares, and safety guidance for trips across all 36 states and the FCT.
+NaijaTrip AI (iTrip) is a Lagos-focused travel intelligence app that blends an LLM with live data sources (traffic, weather, and nearby terminals) to produce street-smart route guidance inside Lagos State.
 
 ## Stack
 - Frontend: React + Vite
-- Backend: Vercel Serverless (`api/chat.js`)
+- Backend: Vercel Serverless (Python, `api/orchestrate.py`)
 - LLM: Groq (OpenAI-compatible chat endpoint)
-- Live data sources: TomTom, OpenWeather, LocationIQ, Serper
+- Live data sources: TomTom, Open-Meteo, LocationIQ, OpenStreetMap (OSRM + Overpass)
 
 ## Quick Start
 1. Install deps:
@@ -14,9 +14,9 @@ NaijaTrip AI is a Nigeria-focused travel intelligence app that blends an LLM wit
 2. Create `.env` from `.env.example` and fill in:
    - `GROQ_API_KEY`
    - `TOMTOM_API_KEY`
-   - `OPENWEATHER_API_KEY`
    - `LOCATIONIQ_API_KEY`
-   - `SERPER_API_KEY`
+   - `HOST` (default `127.0.0.1`)
+   - `PORT` (default `10101`)
 3. Run the API:
    - `npm run dev:api`
 4. Run the frontend:
@@ -24,10 +24,19 @@ NaijaTrip AI is a Nigeria-focused travel intelligence app that blends an LLM wit
 5. Open `http://localhost:5173`
 
 ## Notes
-- The frontend calls `/api/chat`. Vite proxies this to `http://localhost:3001` as configured in `vite.config.js`.
-- `npm run dev:api` runs `server.js`, which mounts `api/chat.js` locally.
-- Rate limits, timeouts, and output validation are enforced in `api/chat.js`.
+- The frontend calls `/api/orchestrate`. Vite proxies this to `http://127.0.0.1:10101` as configured in `vite.config.js`.
+- `npm run dev:api` runs `scripts/dev_api.py`, which serves the Python orchestrator locally.
+- Responses are formatted deterministically in code (no prompt-based formatter).
 - Live data will be partial if any API key is missing.
 
-## Quality Checks
-- `npm run eval` runs a minimal response-format check against the local API.
+## Testing
+- `python -m pytest`
+
+## Optional Runtime Config
+- `LOG_LEVEL` (default `INFO`)
+- `HTTP_RETRIES` (default `2`)
+- `HTTP_BACKOFF_MS` (default `300`)
+- `MAX_ROUTE_KM` (default `120`)
+- `MAX_ROUTE_MINS` (default `240`)
+- `MAX_TERMINAL_KM` (default `5`)
+- `LAGOS_KB_PATH` (default `data/lagos_transport_graph.txt`)

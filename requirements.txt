@@ -1,0 +1,6 @@
+langchain
+langchain-groq
+langgraph
+redis
+pytest
+voyageai>=0.2.4
