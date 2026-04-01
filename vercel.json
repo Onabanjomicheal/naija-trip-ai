@@ -2,7 +2,15 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/*.py",
+      "src": "api/orchestrate.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/intent.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/whatsapp.py",
       "use": "@vercel/python"
     },
     {
@@ -13,6 +21,7 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1.py" },
-    { "src": "/(.*)", "dest": "/dist/$1" }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
