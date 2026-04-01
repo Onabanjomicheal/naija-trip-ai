@@ -226,8 +226,7 @@ Common transfer pattern from mainland to island.
 Direction: Ikeja -> Maryland -> Ojota -> Oworonshoki -> CMS -> Obalende -> Victoria Island
 
 Key Stops:
-  Ikeja -> Maryland -> Ojota -> Oworonshoki -> CMS ->
-  Obalende -> Falomo -> Victoria Island
+  Ikeja -> Obalende -> Victoria Island
 
 Typical Fare (2026): NGN 750 - NGN 1,050
 Peak Duration: 70 - 110 min

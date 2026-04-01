@@ -921,6 +921,10 @@ def _render_route_response(state: OrchestratorState, route_ctx: Dict[str, Any]) 
             if msg:
                 lines.append(f"🚦 {msg}")
 
+    weather_main = (weather.get("main") or "").lower()
+    if any(w in weather_main for w in ["rain", "storm", "drizzle"]):
+        lines.append("🌧 Rain alert: Danfo fares go up. Ride-hail surge likely. Allow extra time.")
+
     lines.append("")
     lines.append(f"*Your journey from {origin} to {destination}:*")
 
@@ -939,39 +943,56 @@ def _render_route_response(state: OrchestratorState, route_ctx: Dict[str, Any]) 
 
     origin_point = _pick_terminal(route_ctx.get("origin_terminals", []), origin)
     dest_point = _pick_terminal(route_ctx.get("dest_terminals", []), destination)
-    mid_stop = ""
-    for s in route_ctx.get("transit_stops", []):
-        nm = _clean_name(s.get("name") if isinstance(s, dict) else "")
-        if nm:
-            mid_stop = nm
-            break
-    if not mid_stop:
+    graph_path = route_ctx.get("graph_path") or []
+    if len(graph_path) >= 2:
+        origin_point = graph_path[0]
+        dest_point = graph_path[-1]
+        mid_stop = graph_path[len(graph_path) // 2] if len(graph_path) >= 3 else dest_point
+    else:
         mid_stop = dest_point
 
     total_km = route_ctx.get("total_distance_km", 0) or 0
+    corridor_fare = route_ctx.get("fare_display") or ""
+    weather_main = (route_ctx.get("weather") or {}).get("main", "").lower()
+    is_rain = any(w in weather_main for w in ["rain", "storm", "drizzle"])
 
     def _fare_range(mode: str) -> str:
         if mode == "danfo":
-            return "₦300–₦600"
+            if corridor_fare and corridor_fare != "Confirm at the park":
+                return corridor_fare + (" (rain fare — expect higher)" if is_rain else "")
+            base = "₦300–₦600" if total_km < 10 else "₦600–₦900" if total_km < 20 else "₦900–₦1,500"
+            return base + (" (rain fare — expect higher)" if is_rain else "")
         if mode == "brt":
+            if corridor_fare and corridor_fare != "Confirm at the park":
+                return corridor_fare
             if total_km < 10:
                 return "₦300–₦500"
             if total_km < 20:
                 return "₦400–₦800"
             return "₦800–₦1,200"
+        # uber
+        surge = is_rain
         if total_km < 10:
-            return "₦2,500–₦4,500"
+            return "₦4,000–₦6,000" + (" (surge pricing likely)" if surge else "")
         if total_km < 20:
-            return "₦4,500–₦8,000"
-        return "₦8,000+"
+            return "₦6,000–₦10,000" + (" (surge pricing likely)" if surge else "")
+        return "₦10,000+" + (" (surge pricing likely)" if surge else "")
+
+    # Build via string from intermediate graph path stops
+    via_stops = ""
+    if len(graph_path) > 2:
+        intermediates = graph_path[1:-1][:3]  # max 3 via stops
+        via_stops = " → ".join(intermediates)
+
+    via_str = f" via {via_stops}" if via_stops else ""
 
     lines.append(
-        f"1) Danfo / Standard Bus: {origin_point}. Shout/ask for {mid_stop}. "
-        f"Drop for {dest_point}. Fare: {_fare_range('danfo')}."
+        f"1) Danfo / Standard Bus: Board at {origin_point}{via_str}. "
+        f"Shout *{dest_point}*. Drop for {dest_point}. Fare: {_fare_range('danfo')}."
     )
     lines.append(
-        f"2) BRT / Route Bus: {origin_point}. Ask for {mid_stop}. "
-        f"Drop for {dest_point}. Fare: {_fare_range('brt')}."
+        f"2) BRT / Route Bus: Board at {origin_point}{via_str}. "
+        f"Ask for {dest_point}. Drop for {dest_point}. Fare: {_fare_range('brt')}."
     )
     lines.append(
         f"3) Bolt / Uber: Pickup {origin_point}. Drop for {dest_point}. "

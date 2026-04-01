@@ -432,13 +432,21 @@ def corridor_contains_path(corridor: Dict, path: List[str]) -> bool:
     stop_clean = [_clean_stop_name(s).lower() for s in stops if _clean_stop_name(s)]
     if not path_clean or not stop_clean:
         return False
-    i = 0
-    for s in stop_clean:
-        if i < len(path_clean) and s == path_clean[i]:
-            i += 1
-        if i >= len(path_clean):
-            return True
-    return False
+
+    def _tokens(s: str):
+        return set(re.sub(r"[^a-z0-9\s]", " ", s).split())
+
+    matched = 0
+    for p in path_clean:
+        p_tok = _tokens(p)
+        if not p_tok:
+            continue
+        for s in stop_clean:
+            if len(p_tok & _tokens(s)) >= 1:
+                matched += 1
+                break
+
+    return matched >= max(2, len(path_clean) // 2)
 
 
 def corridor_time_range(corridor: Dict, is_peak: bool) -> Optional[Tuple[int, int]]:
